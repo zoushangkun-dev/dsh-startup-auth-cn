@@ -295,7 +295,9 @@ window.__ModuleLoader__.load({
         }, 700)
       }
 
-      setTimeout(finish, 90000)
+      // No auto-dismiss: a gate that removes itself after 90 seconds is just
+      // another way to get in by waiting. The overlay leaves only when the gate
+      // is actually resolved (PIN / Hello / code / 直接进入).
 
       function ring(pct) {
         var c = 339.29
