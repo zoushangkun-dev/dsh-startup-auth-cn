@@ -1,10 +1,16 @@
-# Windows Hello prompt for dsh-boot-handmade.
+﻿# Windows Hello prompt for dsh-boot-handmade.
 # Prints AVAILABILITY=<enum> and RESULT=<enum> for the host half to parse.
 # Uses UserConsentVerifier, i.e. whatever Windows Hello is enrolled for this
 # user: fingerprint, face, or the Hello PIN.
 #
 # -CheckOnly  reports availability without putting a prompt on screen.
-param([switch]$CheckOnly)
+# -EchoMessage prints the prompt text and exits: proves how powershell.exe
+#             decoded the literal below without a dialog appearing.
+#
+# NOTE: this file must stay UTF-8 **with BOM**. Windows PowerShell 5.1 reads a
+# BOM-less .ps1 as ANSI (GBK on this machine), which turned the Chinese prompt
+# into mojibake on screen. Do not "convert to UTF-8" without keeping the BOM.
+param([switch]$CheckOnly, [switch]$EchoMessage)
 
 $ErrorActionPreference = 'Stop'
 
@@ -36,7 +42,14 @@ try {
         exit 0
     }
 
-    $result = Await ($verifier::RequestVerificationAsync('验证以解锁 DeepSeek Harness')) $resultType
+    # Kept in a variable so -EchoMessage can prove the decoded text.
+    $message = '验证以解锁 DeepSeek Harness'
+    if ($EchoMessage) {
+        Write-Output ("MESSAGE=" + $message)
+        exit 0
+    }
+
+    $result = Await ($verifier::RequestVerificationAsync($message)) $resultType
     Write-Output "RESULT=$result"
 } catch {
     Write-Output "RESULT=Error"
