@@ -372,10 +372,14 @@ window.__ModuleLoader__.load({
 
               var idleTimer = null
               var countTimer = null
+              var gateClosed = false
+              var helloBusy = false
+              var autoHelloTried = false
 
               function done(how) {
                 if (idleTimer) clearTimeout(idleTimer)
                 if (countTimer) clearInterval(countTimer)
+                gateClosed = true
                 box.classList.remove('on')
                 input.value = ''
                 resolve(how)
@@ -431,22 +435,53 @@ window.__ModuleLoader__.load({
                 if (e.key === 'Enter') { e.preventDefault(); submit() }
               })
 
-              hello.addEventListener('click', function () {
-                if (offline) return
+              // Windows Hello. The system dialog is the only fingerprint path
+              // this sensor's driver supports (a user-session WinBio capture
+              // access-violates inside winbio.dll), so the host raises that
+              // dialog above everything and we announce it here: the dialog is
+              // hosted by CredentialUIBroker and would otherwise sit behind us.
+              function startHello(auto) {
+                if (offline || helloBusy || gateClosed) return
+                helloBusy = true
                 errBox.textContent = ''
                 hello.disabled = true
-                hint.textContent = '等待 Windows 验证…'
+                hint.textContent = auto ? '等待指纹 / 人脸…' : '等待 Windows 验证…'
+                if (altNote) altNote.textContent = '系统验证窗已置顶 · 取消则回到 PIN'
                 postJSON('/boot-auth/hello', {}).then(function (out) {
+                  helloBusy = false
                   hello.disabled = false
+                  if (gateClosed) return
                   if (out.data && out.data.ok) { sound.thunk(); return done('hello') }
                   hint.textContent = '输入访问 PIN'
+                  if (altNote) altNote.textContent = ''
                   fail(helloReasonText(out.data && out.data.reason, out.data && out.data.availability))
-                  try { input.focus() } catch (e) {}
                 }).catch(function () {
+                  helloBusy = false
                   hello.disabled = false
-                  fail('无法调用 Windows Hello')
+                  if (!gateClosed) fail('无法调用 Windows Hello')
                 })
-              })
+              }
+
+              hello.addEventListener('click', function () { startHello(false) })
+
+              // Ask the host what this machine can do right now: the flag stored
+              // at enrolment time goes stale as soon as a driver gets fixed.
+              if (!offline && !setup) {
+                postJSON('/boot-auth/hello/probe', {}).then(function (out) {
+                  var avail = (out.data && out.data.availability) || 'unknown'
+                  if (gateClosed) return
+                  if (avail !== 'Available') {
+                    hello.style.display = 'none'
+                    if (altNote) altNote.textContent = '本机 Windows Hello 不可用（' + avail + '）· 用 PIN 进入'
+                    return
+                  }
+                  hello.style.display = ''
+                  if (!autoHelloTried) {
+                    autoHelloTried = true
+                    setTimeout(function () { startHello(true) }, 450)
+                  }
+                }).catch(function () {})
+              }
 
               setTimeout(function () { input.focus() }, 120)
             })
