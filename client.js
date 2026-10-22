@@ -351,7 +351,6 @@ window.__ModuleLoader__.load({
               var errBox = $('bh-auth-err')
               var altNote = $('bh-alt-note')
               var direct = $('bh-direct')
-              var trial = $('bh-trial')
               if (!box) return resolve('no-ui')
               // Escape hatch #1: the host-side flag file says the lock is off.
               if (status && status.bypass) return resolve('bypass')
@@ -370,15 +369,11 @@ window.__ModuleLoader__.load({
                 hello.style.display = 'none'
               }
 
-              var idleTimer = null
-              var countTimer = null
               var gateClosed = false
               var helloBusy = false
               var autoHelloTried = false
 
               function done(how) {
-                if (idleTimer) clearTimeout(idleTimer)
-                if (countTimer) clearInterval(countTimer)
                 gateClosed = true
                 box.classList.remove('on')
                 input.value = ''
@@ -394,18 +389,6 @@ window.__ModuleLoader__.load({
                   done('direct')
                 })
               }
-
-              // Escape hatch #3: no input at all. Waiting is not a way in during
-              // normal use, but a stuck gate must not become a stuck app.
-              idleTimer = setTimeout(function () {
-                var left = 10
-                if (trial) trial.textContent = '长时间无操作 · ' + left + ' 秒后跳过'
-                countTimer = setInterval(function () {
-                  left -= 1
-                  if (trial) trial.textContent = '长时间无操作 · ' + left + ' 秒后跳过'
-                  if (left <= 0) done('idle-timeout')
-                }, 1000)
-              }, 45000)
 
               function fail(text) {
                 errBox.textContent = text
