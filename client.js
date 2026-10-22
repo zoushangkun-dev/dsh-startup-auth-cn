@@ -108,6 +108,7 @@ window.__ModuleLoader__.load({
       'font-family:inherit;font-size:10px;letter-spacing:.16em;cursor:pointer;padding:6px 0;',
       'text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(20,20,26,.2)}',
       '.bh-recover:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
+      '.bh-recover.hot{color:#ff5a1f;text-decoration-color:#ff5a1f;font-weight:600}',
       '.bh-recover-box{margin-top:8px}',
       '.bh-recover-hint{margin-bottom:8px;font-size:10px;letter-spacing:.1em;color:#6b665c;line-height:1.5}',
       '.bh-code{width:100%;border:1px solid rgba(20,20,26,.34);background:rgba(255,255,255,.4);',
@@ -171,7 +172,7 @@ window.__ModuleLoader__.load({
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
-      '<button class="bh-recover bh-mono" id="bh-recover" type="button">忘记 PIN · 邮箱验证码救援</button>',
+      '<button class="bh-recover bh-mono" id="bh-recover" type="button">PIN 输错被锁了？邮箱验证码跳过</button>',
       '<div class="bh-recover-box" id="bh-recover-box" style="display:none">',
       '<div class="bh-recover-hint bh-mono" id="bh-recover-hint"></div>',
       '<div class="bh-auth-row">',
@@ -390,7 +391,6 @@ window.__ModuleLoader__.load({
               var gateClosed = false
               var helloBusy = false
               var autoHelloTried = false
-              var recovering = false
 
               function done(how) {
                 gateClosed = true
@@ -421,14 +421,21 @@ window.__ModuleLoader__.load({
                 var pin = input.value.trim()
                 if (!/^\d{4,8}$/.test(pin)) return fail('PIN 需要 4-8 位数字')
                 if (offline) { sound.thunk(); return done('offline') }
-                var target = recovering ? '/boot-auth/recover/reset'
-                  : (setup ? '/boot-auth/enroll' : '/boot-auth/pin')
+                var target = setup ? '/boot-auth/enroll' : '/boot-auth/pin'
                 go.disabled = true
                 errBox.textContent = ''
                 postJSON(target, { pin: pin })
                   .then(function (out) {
                     go.disabled = false
                     if (out.data && out.data.ok) { sound.thunk(); return done('pin') }
+                    if (out.status === 429) {
+                      // Not a forgotten PIN -- just too many wrong tries. Point
+                      // at the code that skips the cooldown.
+                      var until = out.data && out.data.lockedUntil
+                      var left = until ? Math.max(1, Math.ceil((until - Date.now()) / 1000)) : 30
+                      if (recoverBtn) recoverBtn.classList.add('hot')
+                      return fail('输错太多次，' + left + ' 秒后才能再试 · 也可以点「邮箱验证码跳过」')
+                    }
                     fail((out.data && out.data.error) || '验证失败')
                   })
                   .catch(function () { go.disabled = false; fail('宿主没有响应') })
@@ -548,14 +555,11 @@ window.__ModuleLoader__.load({
                   if (gateClosed) return
                   var data = out.data || {}
                   if (data.ok) {
-                    recovering = true
-                    recoverBox.style.display = 'none'
-                    hint.textContent = '救援成功 · 设置一个新的访问 PIN'
-                    if (altNote) altNote.textContent = '旧 PIN 不再需要'
-                    input.value = ''
+                    // The code is a way in, nothing more: the PIN stays as it
+                    // was. (Our PIN is a scrypt hash in boot-auth.json; it has
+                    // nothing to do with the Windows Hello PIN.)
                     sound.thunk()
-                    try { input.focus() } catch (e) {}
-                    return
+                    return done('recover')
                   }
                   fail(recoveryProblem(data))
                 }).catch(function () { codeGo.disabled = false; if (!gateClosed) fail('宿主没有响应') })
