@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>boot-handmade · 预览</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}</style>
+</head>
+<body>
+<!-- Standalone preview: loads client.js with a module-loader shim and runs apply(). -->
+<script>
+  sessionStorage.removeItem('dsh-boot-handmade:done')
+  window.__ModuleLoader__ = { load: function (m) { var ex = m.factory(); if (ex.apply) ex.apply() } }
+</script>
+<script src="client.js"></script>
+</body>
+</html>

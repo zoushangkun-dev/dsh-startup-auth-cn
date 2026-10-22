@@ -1,0 +1,27 @@
+{
+  "name": "dsh-boot-handmade",
+  "version": "0.1.0",
+  "description": "Hand-built cold-start animation for DeepSeek Harness: black screen logo -> overexposed wash -> warm technical archive -> interactive access gate -> chromatic glitch reveal -> chat",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client.js"
+  },
+  "files": [
+    "lib",
+    "client.js",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "license": "MIT"
+}

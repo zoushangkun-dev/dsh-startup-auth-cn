@@ -1,0 +1,7 @@
+# dsh-boot-handmade bundle patch: inserts this plugin's row into the web
+# profile roster. The row is a bare plugin by package name; the node half
+# (exports ".") is a no-op cordis plugin and the dsh.client declaration in
+# package.json makes the browser half (exports "./client") load in the GUI.
+- insert:
+    - id: boot-handmade
+      name: dsh-boot-handmade
