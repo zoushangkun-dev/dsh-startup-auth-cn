@@ -490,20 +490,29 @@ window.__ModuleLoader__.load({
 
               // Ask the host what this machine can do right now: the flag stored
               // at enrolment time goes stale as soon as a driver gets fixed.
+              var helloAvailability = null
+
+              // First-run onboarding must not be interrupted: while the
+              // authenticator has not been set up yet, the gate waits for the
+              // click instead of throwing the Hello dialog in the way.
+              function maybeAutoHello() {
+                if (helloAvailability !== 'Available' || !totpConfigured || autoHelloTried) return
+                autoHelloTried = true
+                setTimeout(function () { startHello(true) }, 900)
+              }
+
               if (!offline && !setup) {
                 postJSON('/boot-auth/hello/probe', {}).then(function (out) {
                   var avail = (out.data && out.data.availability) || 'unknown'
                   if (gateClosed) return
+                  helloAvailability = avail
                   if (avail !== 'Available') {
                     hello.style.display = 'none'
                     if (altNote) altNote.textContent = '本机 Windows Hello 不可用（' + avail + '）· 用 PIN 进入'
                     return
                   }
                   hello.style.display = ''
-                  if (!autoHelloTried) {
-                    autoHelloTried = true
-                    setTimeout(function () { startHello(true) }, 450)
-                  }
+                  maybeAutoHello()
                 }).catch(function () {})
               }
 
@@ -604,6 +613,7 @@ window.__ModuleLoader__.load({
                   totpSetupBtn.textContent = totpConfigured
                     ? '用验证器 6 位码进入'
                     : '设置验证器（6 位动态码）'
+                  maybeAutoHello()
                 }).catch(function () {})
               }
               paintTotpStatus()
@@ -746,7 +756,8 @@ window.__ModuleLoader__.load({
       // the animation is not a way in: the gate still asks for PIN / Hello.
       try {
         document.addEventListener('keydown', function (e) {
-          if (e.ctrlKey && e.altKey && (e.key === 'b' || e.key === 'B')) {
+          var k = String(e.key || '').toLowerCase()
+          if ((e.ctrlKey && e.altKey && k === 'b') || (e.ctrlKey && e.shiftKey && k === 'b')) {
             try { sessionStorage.removeItem(DONE_KEY) } catch (err) { /* private mode */ }
             location.reload()
           }
