@@ -109,6 +109,9 @@ window.__ModuleLoader__.load({
       'text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(20,20,26,.2)}',
       '.bh-recover:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
       '.bh-recover.hot{color:#ff5a1f;text-decoration-color:#ff5a1f;font-weight:600}',
+      '.bh-totp-secret{margin:6px 0 8px;padding:8px 10px;border:1px solid rgba(20,20,26,.2);',
+      'background:rgba(255,255,255,.55);font-size:10px;line-height:1.7;letter-spacing:.06em;',
+      'word-break:break-all;color:#14141a;white-space:pre-wrap;max-height:150px;overflow:auto}',
       '.bh-recover-box{margin-top:8px}',
       '.bh-recover-hint{margin-bottom:8px;font-size:10px;letter-spacing:.1em;color:#6b665c;line-height:1.5}',
       '.bh-code{width:100%;border:1px solid rgba(20,20,26,.34);background:rgba(255,255,255,.4);',
@@ -179,6 +182,16 @@ window.__ModuleLoader__.load({
       '<input class="bh-pin" id="bh-code" type="text" inputmode="numeric" maxlength="6"',
       ' autocomplete="one-time-code" spellcheck="false" aria-label="邮箱验证码">',
       '<button class="sc-btn" id="bh-code-go" type="button">验证</button>',
+      '</div>',
+      '</div>',
+      '<button class="bh-recover bh-mono" id="bh-totp-setup" type="button" style="display:none">用验证器 6 位码进入</button>',
+      '<div class="bh-recover-box" id="bh-totp-box" style="display:none">',
+      '<div class="bh-recover-hint" id="bh-totp-hint"></div>',
+      '<div class="bh-totp-secret bh-mono" id="bh-totp-secret"></div>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-totp-code" type="text" inputmode="numeric" maxlength="9"',
+      ' autocomplete="one-time-code" spellcheck="false" aria-label="验证器动态码">',
+      '<button class="sc-btn" id="bh-totp-go" type="button">验证</button>',
       '</div>',
       '</div>',
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
@@ -569,6 +582,102 @@ window.__ModuleLoader__.load({
                 codeGo.addEventListener('click', verifyCode)
                 codeInput.addEventListener('keydown', function (e) {
                   if (e.key === 'Enter') { e.preventDefault(); verifyCode() }
+                })
+              }
+
+              // Authenticator app (TOTP): a local secret, no provider at all.
+              var totpSetupBtn = $('bh-totp-setup')
+              var totpBox = $('bh-totp-box')
+              var totpHint = $('bh-totp-hint')
+              var totpSecretBox = $('bh-totp-secret')
+              var totpInput = $('bh-totp-code')
+              var totpGo = $('bh-totp-go')
+              var totpConfigured = false
+
+              function paintTotpStatus() {
+                if (offline || gateClosed) return
+                postJSON('/boot-auth/totp/status', {}).then(function (out) {
+                  if (gateClosed || !totpSetupBtn) return
+                  var data = out.data || {}
+                  totpConfigured = !!data.configured
+                  totpSetupBtn.style.display = ''
+                  totpSetupBtn.textContent = totpConfigured
+                    ? '用验证器 6 位码进入'
+                    : '设置验证器（6 位动态码）'
+                }).catch(function () {})
+              }
+              paintTotpStatus()
+
+              if (totpSetupBtn) {
+                totpSetupBtn.addEventListener('click', function () {
+                  if (offline || gateClosed) return
+                  if (totpConfigured) {
+                    totpBox.style.display = ''
+                    totpHint.textContent = '打开验证器 App，输入当前 6 位码'
+                    totpSecretBox.style.display = 'none'
+                    try { totpInput.focus() } catch (e) {}
+                    return
+                  }
+                  totpSetupBtn.disabled = true
+                  errBox.textContent = ''
+                  postJSON('/boot-auth/totp/setup', {}).then(function (out) {
+                    totpSetupBtn.disabled = false
+                    if (gateClosed) return
+                    var data = out.data || {}
+                    if (data.ok) {
+                      totpConfigured = true
+                      totpBox.style.display = ''
+                      totpHint.textContent = '验证器 App →「其他账户」→「输入代码」，名称随意，密钥粘贴下面这串。备份码只显示这一次，抄下来收好：'
+                      totpSecretBox.style.display = ''
+                      totpSecretBox.textContent = [
+                        data.secret,
+                        '',
+                        '备用码（每个只能用一次）：',
+                        (data.backupCodes || []).join('  '),
+                      ].join(String.fromCharCode(10))
+                      totpSetupBtn.textContent = '用验证器 6 位码进入'
+                      try { totpInput.focus() } catch (e) {}
+                      return
+                    }
+                    if (data.error === 'totp-already-configured') {
+                      totpConfigured = true
+                      paintTotpStatus()
+                      return
+                    }
+                    fail('验证器设置失败')
+                  }).catch(function () { totpSetupBtn.disabled = false; fail('宿主没有响应') })
+                })
+              }
+
+              function submitTotp() {
+                if (offline || gateClosed) return
+                var code = (totpInput.value || '').trim()
+                if (!code) return fail('先填 6 位码或备用码')
+                totpGo.disabled = true
+                errBox.textContent = ''
+                postJSON('/boot-auth/totp/verify', { code: code }).then(function (out) {
+                  totpGo.disabled = false
+                  if (gateClosed) return
+                  var data = out.data || {}
+                  if (data.ok) { sound.thunk(); return done('totp') }
+                  if (out.status === 429) {
+                    var until = data.lockedUntil
+                    var left = until ? Math.max(1, Math.ceil((until - Date.now()) / 1000)) : 30
+                    return fail('输错太多次，' + left + ' 秒后再试')
+                  }
+                  if (data.error === 'totp-not-configured') {
+                    totpConfigured = false
+                    paintTotpStatus()
+                    return fail('验证器还没设置')
+                  }
+                  fail('码不对' + (data.remaining != null ? '，还剩 ' + data.remaining + ' 次' : ''))
+                }).catch(function () { totpGo.disabled = false; if (!gateClosed) fail('宿主没有响应') })
+              }
+
+              if (totpGo) {
+                totpGo.addEventListener('click', submitTotp)
+                totpInput.addEventListener('keydown', function (e) {
+                  if (e.key === 'Enter') { e.preventDefault(); submitTotp() }
                 })
               }
 
