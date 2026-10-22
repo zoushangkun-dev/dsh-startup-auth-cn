@@ -633,6 +633,16 @@ window.__ModuleLoader__.load({
     exports.inject = []
     exports.apply = function () {
       if (typeof document === 'undefined') return
+      // Ctrl+Alt+B replays the cold start without restarting the app. Replaying
+      // the animation is not a way in: the gate still asks for PIN / Hello.
+      try {
+        document.addEventListener('keydown', function (e) {
+          if (e.ctrlKey && e.altKey && (e.key === 'b' || e.key === 'B')) {
+            try { sessionStorage.removeItem(DONE_KEY) } catch (err) { /* private mode */ }
+            location.reload()
+          }
+        })
+      } catch (e) { /* no document */ }
       try {
         if (sessionStorage.getItem(DONE_KEY) === '1') return
       } catch (e) { /* private mode: play it anyway */ }
