@@ -305,6 +305,36 @@ window.__ModuleLoader__.load({
         node.classList.add('bh-shake')
       }
 
+      // Maps the host's /boot-auth/hello result onto text a person can act on.
+      // On some sensors (e.g. Goodix with an OEM driver whose private sensor
+      // adapter fails at boot) the Windows Security prompt appears, says
+      // "需要指纹验证", and then never starts a capture session: the dialog never
+      // moves. That is a driver limitation, not a wrong finger, so say so.
+      function helloReasonText(reason, availability) {
+        var avail = String(availability || '')
+        if (avail && avail !== 'Available') {
+          return '本机没有可用的 Windows Hello（' + avail + '），请输入 PIN'
+        }
+        switch (reason) {
+          case 'Canceled':
+            return 'Windows Hello 已取消。若按了指纹却没反应，说明本机指纹在应用内不可用（驱动层未提供采样），请输入 PIN'
+          case 'DeviceNotPresent':
+            return '本机指纹 / 人脸在应用内不可用，请输入 PIN'
+          case 'DeviceBusy':
+            return '传感器正被其它程序占用，稍后再试或直接用 PIN'
+          case 'Retry':
+            return '这次没读出来，再试一次，或直接输入 PIN'
+          case 'helper-missing':
+            return '缺少 hello.ps1，无法调用 Windows Hello，请输入 PIN'
+          case 'no-result':
+            return 'Windows Hello 没有返回结果，请输入 PIN'
+          case 'Error':
+            return 'Windows Hello 调用出错，请输入 PIN'
+          default:
+            return 'Windows 验证未通过（' + (reason || '已取消') + '），请输入 PIN'
+        }
+      }
+
       // The gate: host-verified PIN (first run: enrolment), Windows Hello as the
       // primary shortcut, WeChat/QQ left as declared-but-unconfigured slots.
       function authGate() {
@@ -410,7 +440,8 @@ window.__ModuleLoader__.load({
                   hello.disabled = false
                   if (out.data && out.data.ok) { sound.thunk(); return done('hello') }
                   hint.textContent = '输入访问 PIN'
-                  fail('Windows 验证未通过（' + ((out.data && out.data.reason) || '已取消') + '）')
+                  fail(helloReasonText(out.data && out.data.reason, out.data && out.data.availability))
+                  try { input.focus() } catch (e) {}
                 }).catch(function () {
                   hello.disabled = false
                   fail('无法调用 Windows Hello')
