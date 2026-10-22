@@ -703,6 +703,11 @@ window.__ModuleLoader__.load({
                     paintTotpStatus()
                     return failTotp('验证器还没设置')
                   }
+                  if (!data.error || out.status >= 500) {
+                    // A body-less 400/500 means the host threw, not that the
+                    // code was wrong. Do not tell people their code is bad.
+                    return failTotp('宿主返回异常（HTTP ' + out.status + '）——这不是码的问题，把这条发我')
+                  }
                   failTotp('码不对' + (data.remaining != null ? '，还剩 ' + data.remaining + ' 次' : ''))
                 }).catch(function () { totpGo.disabled = false; if (!gateClosed) failTotp('宿主没有响应') })
               }
