@@ -1,4 +1,4 @@
-﻿# Raise the Windows Hello consent prompt above everything else.
+# Raise the Windows Hello consent prompt above everything else.
 # The prompt is hosted out-of-process by CredentialUIBroker.exe in a window of
 # class "Credential Dialog Xaml Host" (title "Windows 安全中心"), and it is
 # neither topmost nor foreground -- so an Electron app covering the screen
@@ -31,6 +31,10 @@ public static class WinRaise {
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr pid);
     [DllImport("user32.dll")] static extern bool AttachThreadInput(uint attach, uint attachTo, bool doAttach);
     [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+    [StructLayout(LayoutKind.Sequential)] struct RECT { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT r);
+    [DllImport("user32.dll")] static extern bool MoveWindow(IntPtr hWnd, int x, int y, int w, int h, bool repaint);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
 
     const uint SWP_NOMOVE = 0x0002;
     const uint SWP_NOSIZE = 0x0001;
@@ -64,6 +68,22 @@ public static class WinRaise {
     public static bool Raise(IntPtr hWnd) {
         if (hWnd == IntPtr.Zero) return false;
         ShowWindow(hWnd, 9); // SW_RESTORE
+
+        // The broker reuses one window across prompts, so a window another tool
+        // parked off-screen stays parked: raising it would just focus something
+        // nobody can see. Put it back on the desktop first.
+        RECT r;
+        if (GetWindowRect(hWnd, out r)) {
+            bool offscreen = r.Left < -1000 || r.Top < -1000 || r.Right < 0 || r.Bottom < 0;
+            if (offscreen) {
+                int w = r.Right - r.Left, h = r.Bottom - r.Top;
+                if (w <= 0 || h <= 0) { w = 520; h = 420; }
+                int x = Math.Max(80, (GetSystemMetrics(0) - w) / 2);
+                int y = Math.Max(80, (GetSystemMetrics(1) - h) / 2);
+                MoveWindow(hWnd, x, y, w, h, true);
+            }
+        }
+
         // Topmost first: this is what makes it visible even if Windows refuses
         // to hand us the foreground (our own app currently owns it).
         SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
