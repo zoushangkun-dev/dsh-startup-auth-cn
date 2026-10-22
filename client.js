@@ -104,6 +104,15 @@ window.__ModuleLoader__.load({
       'color:#14141a;padding:10px 14px;font-family:inherit;font-size:12px;letter-spacing:.18em;',
       'cursor:pointer;transition:background .2s ease,border-color .2s ease}',
       '.bh-hello:hover{background:rgba(255,90,31,.08);border-color:#ff5a1f}',
+      '.bh-recover{margin-top:6px;width:100%;border:0;background:transparent;color:#8d887e;',
+      'font-family:inherit;font-size:10px;letter-spacing:.16em;cursor:pointer;padding:6px 0;',
+      'text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(20,20,26,.2)}',
+      '.bh-recover:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
+      '.bh-recover-box{margin-top:8px}',
+      '.bh-recover-hint{margin-bottom:8px;font-size:10px;letter-spacing:.1em;color:#6b665c;line-height:1.5}',
+      '.bh-code{width:100%;border:1px solid rgba(20,20,26,.34);background:rgba(255,255,255,.4);',
+      'font-family:ui-monospace,Consolas,monospace;font-size:18px;letter-spacing:.4em;',
+      'padding:9px 12px;color:#14141a;outline:none}',
       '.bh-direct{margin-top:10px;width:100%;border:0;background:transparent;color:#8d887e;',
       'font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:.2em;',
       'cursor:pointer;padding:8px 0;text-decoration:underline;text-underline-offset:4px;',
@@ -162,6 +171,15 @@ window.__ModuleLoader__.load({
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
+      '<button class="bh-recover bh-mono" id="bh-recover" type="button">忘记 PIN · 邮箱验证码救援</button>',
+      '<div class="bh-recover-box" id="bh-recover-box" style="display:none">',
+      '<div class="bh-recover-hint bh-mono" id="bh-recover-hint"></div>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-code" type="text" inputmode="numeric" maxlength="6"',
+      ' autocomplete="one-time-code" spellcheck="false" aria-label="邮箱验证码">',
+      '<button class="sc-btn" id="bh-code-go" type="button">验证</button>',
+      '</div>',
+      '</div>',
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-trial bh-mono" id="bh-trial">双入口模式 · 稳定后会把「直接进入」移除</div>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
@@ -372,6 +390,7 @@ window.__ModuleLoader__.load({
               var gateClosed = false
               var helloBusy = false
               var autoHelloTried = false
+              var recovering = false
 
               function done(how) {
                 gateClosed = true
@@ -402,9 +421,11 @@ window.__ModuleLoader__.load({
                 var pin = input.value.trim()
                 if (!/^\d{4,8}$/.test(pin)) return fail('PIN 需要 4-8 位数字')
                 if (offline) { sound.thunk(); return done('offline') }
+                var target = recovering ? '/boot-auth/recover/reset'
+                  : (setup ? '/boot-auth/enroll' : '/boot-auth/pin')
                 go.disabled = true
                 errBox.textContent = ''
-                postJSON(setup ? '/boot-auth/enroll' : '/boot-auth/pin', { pin: pin })
+                postJSON(target, { pin: pin })
                   .then(function (out) {
                     go.disabled = false
                     if (out.data && out.data.ok) { sound.thunk(); return done('pin') }
@@ -464,6 +485,87 @@ window.__ModuleLoader__.load({
                     setTimeout(function () { startHello(true) }, 450)
                   }
                 }).catch(function () {})
+              }
+
+              // Email recovery: the way back in when the PIN is forgotten. The
+              // host mails a 6-digit code (5 minutes, single use, at most 3 an
+              // hour), then the gate asks for a new PIN.
+              var recoverBtn = $('bh-recover')
+              var recoverBox = $('bh-recover-box')
+              var recoverHint = $('bh-recover-hint')
+              var codeInput = $('bh-code')
+              var codeGo = $('bh-code-go')
+
+              function recoveryProblem(data) {
+                var code = data && data.error
+                if (code === 'smtp-not-configured') return '邮件救援没配置完：还缺 SMTP 授权码'
+                if (code === 'recovery-not-configured') return '邮件救援没配置完：没有收件地址'
+                if (code === 'cooldown') return '刚发过一封，等一分钟再试'
+                if (code === 'too-many') return '这一小时申请太多次了，稍后再试'
+                if (code === 'send-failed') return '发送失败：' + ((data && data.detail) || '未知错误')
+                if (code === 'expired') return '验证码过期了，重新申请一封'
+                if (code === 'bad-code') {
+                  return '验证码不对' + (data.remaining != null ? '，还剩 ' + data.remaining + ' 次' : '')
+                }
+                if (code === 'no-active-code') return '还没有申请验证码'
+                if (code === 'too-many-attempts') return '试太多次了，重新申请一封'
+                return '邮件救援不可用'
+              }
+
+              if (recoverBtn) {
+                recoverBtn.addEventListener('click', function () {
+                  if (offline || gateClosed) return
+                  recoverBtn.disabled = true
+                  errBox.textContent = ''
+                  postJSON('/boot-auth/recover/start', {}).then(function (out) {
+                    recoverBtn.disabled = false
+                    if (gateClosed) return
+                    var data = out.data || {}
+                    if (data.ok) {
+                      recoverBox.style.display = ''
+                      recoverHint.textContent = '验证码已发往 ' + (data.masked || '你的邮箱') +
+                        ' · 5 分钟内有效'
+                      hint.textContent = '输入邮件里的 6 位验证码'
+                      try { codeInput.focus() } catch (e) {}
+                      return
+                    }
+                    fail(recoveryProblem(data))
+                  }).catch(function () {
+                    recoverBtn.disabled = false
+                    if (!gateClosed) fail('宿主没有响应')
+                  })
+                })
+              }
+
+              function verifyCode() {
+                if (offline || gateClosed) return
+                var code = (codeInput.value || '').trim()
+                if (!/^\d{6}$/.test(code)) return fail('验证码是 6 位数字')
+                codeGo.disabled = true
+                errBox.textContent = ''
+                postJSON('/boot-auth/recover/verify', { code: code }).then(function (out) {
+                  codeGo.disabled = false
+                  if (gateClosed) return
+                  var data = out.data || {}
+                  if (data.ok) {
+                    recovering = true
+                    recoverBox.style.display = 'none'
+                    hint.textContent = '救援成功 · 设置一个新的访问 PIN'
+                    if (altNote) altNote.textContent = '旧 PIN 不再需要'
+                    input.value = ''
+                    sound.thunk()
+                    try { input.focus() } catch (e) {}
+                    return
+                  }
+                  fail(recoveryProblem(data))
+                }).catch(function () { codeGo.disabled = false; if (!gateClosed) fail('宿主没有响应') })
+              }
+
+              if (codeGo) {
+                codeGo.addEventListener('click', verifyCode)
+                codeInput.addEventListener('keydown', function (e) {
+                  if (e.key === 'Enter') { e.preventDefault(); verifyCode() }
+                })
               }
 
               setTimeout(function () { input.focus() }, 120)
