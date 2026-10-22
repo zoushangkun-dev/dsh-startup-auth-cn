@@ -389,6 +389,8 @@ window.__ModuleLoader__.load({
               // Escape hatch #1: the host-side flag file says the lock is off.
               if (status && status.bypass) return resolve('bypass')
               box.classList.add('on')
+              box.addEventListener('pointerdown', function () { gateTouched = true }, true)
+              box.addEventListener('keydown', function () { gateTouched = true }, true)
 
               var offline = !!status.offline
               var setup = !offline && status.configured === false
@@ -478,9 +480,13 @@ window.__ModuleLoader__.load({
                   hello.disabled = false
                   if (gateClosed) return
                   if (out.data && out.data.ok) { sound.thunk(); return done('hello') }
-                  hint.textContent = '输入访问 PIN'
                   if (altNote) altNote.textContent = ''
-                  fail(helloReasonText(out.data && out.data.reason, out.data && out.data.availability))
+                  // Only a real rejection is a PIN error. A cancelled or broken
+                  // Windows Hello prompt must not clear the PIN field or steal
+                  // the focus from whatever the person was typing.
+                  errBox.textContent = helloReasonText(
+                    out.data && out.data.reason, out.data && out.data.availability)
+                  sound.nope()
                 }).catch(function () {
                   helloBusy = false
                   hello.disabled = false
@@ -497,10 +503,17 @@ window.__ModuleLoader__.load({
               // First-run onboarding must not be interrupted: while the
               // authenticator has not been set up yet, the gate waits for the
               // click instead of throwing the Hello dialog in the way.
+              var gateTouched = false
+
               function maybeAutoHello() {
                 if (helloAvailability !== 'Available' || !totpConfigured || autoHelloTried) return
                 autoHelloTried = true
-                setTimeout(function () { startHello(true) }, 900)
+                // Give the person a beat to pick the code entry first: if they
+                // touch the gate at all, do not throw the system dialog at them.
+                setTimeout(function () {
+                  if (gateTouched || gateClosed) return
+                  startHello(true)
+                }, 1500)
               }
 
               if (!offline && !setup) {
@@ -661,10 +674,18 @@ window.__ModuleLoader__.load({
                 })
               }
 
+              function failTotp(text) {
+                errBox.textContent = text
+                shake(totpInput)
+                sound.nope()
+                totpInput.value = ''
+                try { totpInput.focus() } catch (e) {}
+              }
+
               function submitTotp() {
                 if (offline || gateClosed) return
                 var code = (totpInput.value || '').trim()
-                if (!code) return fail('先填 6 位码或备用码')
+                if (!code) return failTotp('先填 6 位码或备用码')
                 totpGo.disabled = true
                 errBox.textContent = ''
                 postJSON('/boot-auth/totp/verify', { code: code }).then(function (out) {
@@ -675,19 +696,23 @@ window.__ModuleLoader__.load({
                   if (out.status === 429) {
                     var until = data.lockedUntil
                     var left = until ? Math.max(1, Math.ceil((until - Date.now()) / 1000)) : 30
-                    return fail('输错太多次，' + left + ' 秒后再试')
+                    return failTotp('输错太多次，' + left + ' 秒后再试')
                   }
                   if (data.error === 'totp-not-configured') {
                     totpConfigured = false
                     paintTotpStatus()
-                    return fail('验证器还没设置')
+                    return failTotp('验证器还没设置')
                   }
-                  fail('码不对' + (data.remaining != null ? '，还剩 ' + data.remaining + ' 次' : ''))
-                }).catch(function () { totpGo.disabled = false; if (!gateClosed) fail('宿主没有响应') })
+                  failTotp('码不对' + (data.remaining != null ? '，还剩 ' + data.remaining + ' 次' : ''))
+                }).catch(function () { totpGo.disabled = false; if (!gateClosed) failTotp('宿主没有响应') })
               }
 
               if (totpGo) {
                 totpGo.addEventListener('click', submitTotp)
+                totpInput.addEventListener('input', function () {
+                  // Backup codes carry letters, so only auto-fire on pure digits.
+                  if (/^\d{6}$/.test(String(totpInput.value || ''))) submitTotp()
+                })
                 totpInput.addEventListener('keydown', function (e) {
                   if (e.key === 'Enter') { e.preventDefault(); submitTotp() }
                 })
