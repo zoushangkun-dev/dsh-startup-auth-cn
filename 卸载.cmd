@@ -1,23 +1,23 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul
 setlocal
-title dsh-boot-handmade å¸è½½
+title dsh-boot-handmade Ğ¶ÔØ
 
 set "CLI=D:\dsh\resources\runtime\cli\bin\dsh.cmd"
 
 echo ============================================
-echo  dsh-boot-handmade å¸è½½ï¼ˆæ€¥æ•‘ç”¨ï¼‰
+echo  dsh-boot-handmade Ğ¶ÔØ£¨¼±¾ÈÓÃ£©
 echo ============================================
 echo.
 
 tasklist /FI "IMAGENAME eq DeepSeek Harness.exe" 2>nul | find /I "DeepSeek Harness.exe" >nul
 if not errorlevel 1 (
-  echo [å¤±è´¥] DeepSeek Harness è¿˜åœ¨è¿è¡Œï¼Œå…ˆå®Œå…¨é€€å‡ºï¼ˆä»»åŠ¡ç®¡ç†å™¨ç»“æŸæ‰€æœ‰åŒåè¿›ç¨‹ï¼‰ã€‚
+  echo [Ê§°Ü] DeepSeek Harness »¹ÔÚÔËĞĞ£¬ÏÈÍêÈ«ÍË³ö£¨ÈÎÎñ¹ÜÀíÆ÷½áÊøËùÓĞÍ¬Ãû½ø³Ì£©¡£
   pause
   exit /b 1
 )
 
 call "%CLI%" plugin --profile desktop remove dsh-boot-handmade
 echo.
-echo å·²ç§»é™¤ã€‚é‡å¼€å®¢æˆ·ç«¯ç¡®è®¤ç•Œé¢æ¢å¤æ­£å¸¸ã€‚
+echo ÒÑÒÆ³ı¡£ÖØ¿ª¿Í»§¶ËÈ·ÈÏ½çÃæ»Ö¸´Õı³£¡£
 pause

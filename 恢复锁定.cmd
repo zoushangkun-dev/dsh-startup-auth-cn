@@ -1,28 +1,28 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul
 setlocal
-title dsh-boot-handmade æ¢å¤åº”ç”¨é”
+title dsh-boot-handmade »Ö¸´Ó¦ÓÃËø
 
 set "FLAG=%USERPROFILE%\.dsh\boot-auth-bypass"
 
 echo ============================================
-echo  æ¢å¤åº”ç”¨é”ï¼ˆæ’¤æŽ‰æ€¥æ•‘ç»•è¿‡ï¼‰
+echo  »Ö¸´Ó¦ÓÃËø£¨³·µô¼±¾ÈÈÆ¹ý£©
 echo ============================================
 echo.
 
 if exist "%FLAG%" (
   del /f /q "%FLAG%"
   if errorlevel 1 (
-    echo [å¤±è´¥] åˆ ä¸æŽ‰ %FLAG%ï¼Œæ‰‹åŠ¨åˆ ä¸€ä¸‹ã€‚
+    echo [Ê§°Ü] É¾²»µô %FLAG%£¬ÊÖ¶¯É¾Ò»ÏÂ¡£
     pause
     exit /b 1
   )
-  echo [å®Œæˆ] æ ‡è®°å·²åˆ é™¤ï¼Œä¸‹æ¬¡å¯åŠ¨æ¢å¤éªŒè¯ã€‚
+  echo [Íê³É] ±ê¼ÇÒÑÉ¾³ý£¬ÏÂ´ÎÆô¶¯»Ö¸´ÑéÖ¤¡£
 ) else (
-  echo [æç¤º] æœ¬æ¥å°±ä¸å­˜åœ¨è¿™ä¸ªæ ‡è®°ï¼Œå·²ç»å¤„äºŽéªŒè¯çŠ¶æ€ã€‚
+  echo [ÌáÊ¾] ±¾À´¾Í²»´æÔÚÕâ¸ö±ê¼Ç£¬ÒÑ¾­´¦ÓÚÑéÖ¤×´Ì¬¡£
 )
 
 echo.
-echo æƒ³è¿ž PIN ä¸€èµ·æ¸…æŽ‰ï¼ˆå›žåˆ°é¦–æ¬¡è®¾ç½®ï¼‰ï¼š
-echo   åˆ é™¤ %USERPROFILE%\.dsh\boot-auth.json
+echo ÏëÁ¬ PIN Ò»ÆðÇåµô£¨»Øµ½Ê×´ÎÉèÖÃ£©£º
+echo   É¾³ý %USERPROFILE%\.dsh\boot-auth.json
 pause
