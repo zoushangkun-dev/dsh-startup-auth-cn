@@ -638,7 +638,7 @@ window.__ModuleLoader__.load({
                   if (offline || gateClosed) return
                   if (totpConfigured) {
                     totpBox.style.display = ''
-                    totpHint.textContent = '打开验证器 App，输入当前 6 位码'
+                    totpHint.textContent = '打开验证器 App，输入当前 6 位码（30 秒一换，过期就重输最新的）'
                     totpSecretBox.style.display = 'none'
                     try { totpInput.focus() } catch (e) {}
                     return
