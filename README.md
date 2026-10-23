@@ -8,7 +8,7 @@
 <!-- 放一张 GIF 或截图：把 boot.gif 放到 docs/ 下再改这里 -->
 <!-- ![预览](docs/boot.gif) -->
 
-画面对应的是这条演示视频的视觉语言：<https://www.bilibili.com/video/BV1T7nM6xEqo>。
+视觉语言参考了 B 站视频《deepseek 那些豪气冲天的启动动画》（[@熟橘枯摘](https://space.bilibili.com/3546608889236009) · [BV1T7nM6xEqo](https://www.bilibili.com/video/BV1T7nM6xEqo)）——完整的出处链和三位更早的作者见图末「[参考动画与致谢](#参考动画与致谢)」。
 全部用 DOM + CSS + SVG 画出来，没有视频、没有位图、没有第三方素材，任意分辨率都清晰；音效是 WebAudio 现场合成的。
 
 ## 它是什么
