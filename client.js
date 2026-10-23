@@ -783,21 +783,21 @@ window.__ModuleLoader__.load({
         // of a 0.6 s blink, without going back to one-await-per-row.
         typeInto(en, 'IDENTITY VERIFICATION', 14).catch(function () {})
         addRow('身份名称  OPERATOR').catch(function () {})
-        setTimeout(function () { addRow('证件编号  DSH-0027-6.0.16').catch(function () {}) }, 180)
-        setTimeout(function () { addRow('权限等级  LEVEL-3 · 已授权').catch(function () {}) }, 360)
-        setTimeout(function () { ring(72); addRow('会话令牌  已签发 · TTL 12h').catch(function () {}) }, 540)
-        setTimeout(function () { ring(86); addRow('审计记录  已落盘').catch(function () {}) }, 720)
+        setTimeout(function () { addRow('证件编号  DSH-0027-6.0.16').catch(function () {}) }, 200)
+        setTimeout(function () { addRow('权限等级  LEVEL-3 · 已授权').catch(function () {}) }, 400)
+        setTimeout(function () { ring(72); addRow('会话令牌  已签发 · TTL 12h').catch(function () {}) }, 600)
+        setTimeout(function () { ring(86); addRow('审计记录  已落盘').catch(function () {}) }, 800)
 
-        await wait(1000)
+        await wait(1150)
 
         zh.textContent = '读取完毕 · 核验通过'
         en.textContent = 'READ COMPLETE · VERIFIED'
         if (note) note.textContent = '权限已授予，正在进入工作区。'
         ring(100)
         st.textContent = '08 / 08 | VERIFY'
-        await wait(340)
-        sound.tick()
         await wait(380)
+        sound.tick()
+        await wait(420)
 
         finish()
       }
