@@ -280,10 +280,18 @@ window.__ModuleLoader__.load({
 
       var sound = Beep()
       var finished = false
+      var watchdog = null
+
+      // Cheap timeline so "it hangs" can be pinpointed instead of guessed.
+      function mark(stage) {
+        try { console.debug('[boot-handmade]', stage, Math.round(performance.now()) + 'ms') } catch (e) {}
+      }
 
       function finish() {
         if (finished) return
         finished = true
+        if (watchdog) { clearTimeout(watchdog); watchdog = null }
+        mark('finish')
         try { sessionStorage.setItem(DONE_KEY, '1') } catch (e) { /* private mode */ }
         root.classList.add('out')
         setTimeout(function () {
@@ -728,6 +736,7 @@ window.__ModuleLoader__.load({
       }
 
       async function run() {
+        mark('run-start')
         counter()
         // The click must be acknowledged fast. Waiting 4.5 s in silence is what
         // makes people think the launch failed and click again (which starts
@@ -753,8 +762,15 @@ window.__ModuleLoader__.load({
           .catch(function () {})
 
         st.textContent = '02 / 08 | GRANT'
+        mark('gate-ready')
         await authGate()
+        mark('unlocked')
         await dressing
+
+        // The decoration below is theatre, so it must never be able to keep
+        // somebody out. If anything in it stalls (a thrown typeInto, a tab that
+        // throttles timers), this closes the gate anyway.
+        watchdog = setTimeout(function () { watchdog = null; finish() }, 4000)
 
         zh.textContent = '身份资料确认'
         en.textContent = 'IDENTITY VERIFICATION'
