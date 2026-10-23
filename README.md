@@ -235,3 +235,17 @@ launcher/          启动器本体（dsh-launcher.vbs + dsh-launcher.ps1）
 
 名字取“细节”是因为找的人不一定是在找密码——也可能是想换启动方式。
 单独写「更改登录密码」会让另一半功能显得不存在。
+
+## 指纹采样失败后的自愈（V4.1 起）
+
+Windows 把 Hello 提示框放在 **CredentialUIBroker.exe** 里，而且会**复用**这个进程。
+如果在采样中途把窗口关掉（点取消、按 Esc、直接关），broker 会保留一次失效的采样会话：
+下一次窗口照样弹出来、也显示「请扫描指纹」，但**采不到任何东西**，只有重启才行。
+
+现在两种处理：
+
+- **自动**：这次 Hello 返回 Canceled / RetriesExhausted / no-result 时，宿主先
+  `taskkill /F /IM CredentialUIBroker.exe` 再自动重试一次
+- **手动**：`POST /boot-auth/hello/reset` 随时清掉卡住的 broker
+
+代价是重试会多弹一次窗；但比“指纹彻底用不了、只能重启”好。

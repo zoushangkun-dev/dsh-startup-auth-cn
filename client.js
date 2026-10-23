@@ -632,23 +632,45 @@ window.__ModuleLoader__.load({
                 hello.disabled = true
                 hint.textContent = auto ? '等待指纹 / 人脸…' : '等待 Windows 验证…'
                 if (altNote) altNote.textContent = '系统验证窗已置顶 · 取消则回到 PIN'
-                postJSON('/boot-auth/hello', {}).then(function (out) {
-                  helloBusy = false
-                  hello.disabled = false
-                  if (gateClosed) return
-                  if (out.data && out.data.ok) { sound.thunk(); return done('hello') }
-                  if (altNote) altNote.textContent = ''
-                  // Only a real rejection is a PIN error. A cancelled or broken
-                  // Windows Hello prompt must not clear the PIN field or steal
-                  // the focus from whatever the person was typing.
-                  errBox.textContent = helloReasonText(
-                    out.data && out.data.reason, out.data && out.data.availability)
-                  sound.nope()
-                }).catch(function () {
-                  helloBusy = false
-                  hello.disabled = false
-                  if (!gateClosed) fail('无法调用 Windows Hello')
-                })
+                // Windows reuses CredentialUIBroker.exe. If the previous dialog
+                // was dismissed mid-capture, the broker holds a dead session and
+                // the next prompt never samples. Reset it once, then retry, so a
+                // cancelled prompt does not wedge the fingerprint for the session.
+                function askHello(allowRetry) {
+                  postJSON('/boot-auth/hello', {}).then(function (out) {
+                    if (gateClosed) { helloBusy = false; hello.disabled = false; return }
+                    if (out.data && out.data.ok) {
+                      helloBusy = false
+                      hello.disabled = false
+                      sound.thunk()
+                      return done('hello')
+                    }
+                    var reason = String((out.data && out.data.reason) || '')
+                    var stuck = /Canceled|RetriesExhausted|no-result|timed/i.test(reason)
+                    if (allowRetry && stuck) {
+                      hint.textContent = '正在重置指纹会话…'
+                      postJSON('/boot-auth/hello/reset', {}).then(function () {
+                        hint.textContent = '正在重试…'
+                        askHello(false)
+                      }).catch(function () { askHello(false) })
+                      return
+                    }
+                    helloBusy = false
+                    hello.disabled = false
+                    if (altNote) altNote.textContent = ''
+                    // Only a real rejection is a PIN error. A cancelled or broken
+                    // Windows Hello prompt must not clear the PIN field or steal
+                    // the focus from whatever the person was typing.
+                    errBox.textContent = helloReasonText(
+                      out.data && out.data.reason, out.data && out.data.availability)
+                    sound.nope()
+                  }).catch(function () {
+                    helloBusy = false
+                    hello.disabled = false
+                    if (!gateClosed) fail('无法调用 Windows Hello')
+                  })
+                }
+                askHello(true)
               }
 
               hello.addEventListener('click', function () { sound.click(); startHello(false) })
