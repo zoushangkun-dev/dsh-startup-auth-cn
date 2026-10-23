@@ -89,6 +89,17 @@ public class BhWin {
   $bar.BackColor = [System.Drawing.Color]::FromArgb(255, 90, 31)
   $bar.Location = New-Object System.Drawing.Point(32, 118)
   $form.Controls.Add($bar)
+
+  # 只给一条橙色的条，人会怀疑它到底走完没有；给个数字就没这个问题。
+  $pct = New-Object System.Windows.Forms.Label
+  $pct.Text = '0%'
+  $pct.ForeColor = [System.Drawing.Color]::FromArgb(141, 136, 126)
+  $pct.Font = New-Object System.Drawing.Font('Consolas', 9)
+  $pct.AutoSize = $false
+  $pct.TextAlign = 'MiddleRight'
+  $pct.Size = New-Object System.Drawing.Size(48, 16)
+  $pct.Location = New-Object System.Drawing.Point(340, 100)
+  $form.Controls.Add($pct)
   Write-Log 'form built'
 
   $spawned = $null
@@ -109,8 +120,12 @@ public class BhWin {
   $msgFail = -join (@(0x8BF7,0x5728,0x4EFB,0x52A1,0x7BA1,0x7406,0x5668,0x7ED3,0x675F,0x20,0x44,0x53,0x48,0x20,0x540E,0x91CD,0x8BD5) | ForEach-Object { [char]$_ })
   $timer.Add_Tick({
     $state.elapsed += 120
-    $w = [Math]::Min(356, [int](356 * ($state.elapsed / 2500.0)))
+    # Never look finished while still waiting: the bar tops out at 92% and closes
+    # when the window appears, so "full" always means the same thing.
+    $ratio = [Math]::Min(0.92, $state.elapsed / 2500.0)
+    $w = [int](356 * $ratio)
     if ($w -gt $bar.Width) { $bar.Width = $w }
+    $pct.Text = [string][int]([Math]::Round($ratio * 100)) + '%'
 
     # 启动的进程已经退出、而系统里还有别的同名进程：单实例锁把它挡回来了，
     # 那个后台实例又没有窗口，所以什么都不会出现。
