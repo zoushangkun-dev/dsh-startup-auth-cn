@@ -164,10 +164,10 @@ window.__ModuleLoader__.load({
       '<div class="sc-note" id="bh-note"></div>',
       '<div class="bh-rows bh-mono" id="bh-rows"></div>',
       '<div class="bh-auth" id="bh-auth">',
-      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入访问 PIN</div>',
+      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
       '<div class="bh-auth-row">',
       '<input class="bh-pin" id="bh-pin" type="password" inputmode="numeric" maxlength="8"',
-      ' autocomplete="off" spellcheck="false" aria-label="访问 PIN">',
+      ' autocomplete="off" spellcheck="false" aria-label="登录密码">',
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
@@ -197,7 +197,7 @@ window.__ModuleLoader__.load({
       '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
       '<div class="bh-recover-hint" id="bh-account-msg"></div>',
       '</div>',
-      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">修改访问 PIN</button>',
+      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">更改登录密码</button>',
       '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-pinchange-hint">'
       + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
@@ -301,6 +301,15 @@ window.__ModuleLoader__.load({
       root.innerHTML = TEMPLATE
       document.documentElement.appendChild(root)
 
+      // 所有面向人的短文案集中在这里：以后加语言只改这一段。
+      // 短标签必须一眼能懂，长解释放在悬停提示里。
+      var LABELS = {
+        changePin: '更改登录密码',
+        changePinFull: '更改登录时的 PIN',
+        changePinTitle: '更改登录 PIN',
+        saved: '已更新，下次开门用新 PIN。',
+      }
+
       var sound = Beep()
       var finished = false
       var watchdog = null
@@ -386,6 +395,9 @@ window.__ModuleLoader__.load({
           '#bh-manage{position:fixed;right:20px;z-index:2147482001;width:320px;display:none;padding:16px;',
           'border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
           'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
+          '#bh-chip-tip{position:fixed;z-index:2147482002;padding:5px 9px;border-radius:6px;',
+          'background:#1c1c24;color:#f3eee4;font-size:11px;line-height:1.4;border:1px solid #3a3a46;',
+          'display:none;pointer-events:none;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.5)}',
           '#bh-manage.in-footer{left:16px;bottom:120px}',
           '#bh-manage.in-corner{bottom:76px}',
           '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
@@ -407,7 +419,7 @@ window.__ModuleLoader__.load({
         panel.id = 'bh-manage'
         panel.innerHTML =
           '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
-          '<h4>修改访问 PIN</h4>' +
+          '<h4>' + LABELS.changePinTitle + '</h4>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password"' +
           ' inputmode="numeric" maxlength="8" placeholder="当前 PIN" /></div>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password"' +
@@ -425,9 +437,9 @@ window.__ModuleLoader__.load({
           var chip = document.createElement('button')
           chip.id = 'bh-chip'
           chip.type = 'button'
-          chip.title = '开机门 · 修改访问 PIN'
-          chip.setAttribute('aria-label', '开机门 · 修改访问 PIN')
-          chip.textContent = '访问 PIN'
+          chip.title = LABELS.changePinFull
+          chip.setAttribute('aria-label', LABELS.changePinFull)
+          chip.textContent = LABELS.changePin
           anchor.appendChild(chip)
           if (collidesWithSiblings(chip)) {
             chip.remove()
@@ -440,13 +452,30 @@ window.__ModuleLoader__.load({
           var fab = document.createElement('button')
           fab.id = 'bh-fab'
           fab.type = 'button'
-          fab.title = '开机门 · 修改访问 PIN'
-          fab.setAttribute('aria-label', '开机门 · 修改访问 PIN')
+          fab.title = LABELS.changePinFull
+          fab.setAttribute('aria-label', LABELS.changePinFull)
           fab.textContent = '⚿'
           document.documentElement.appendChild(fab)
           trigger = fab
           panel.classList.add('in-corner')
         }
+
+        // 悬停/聚焦时把完整说法浮出来；离开就收起。
+        var tip = document.createElement('div')
+        tip.id = 'bh-chip-tip'
+        tip.textContent = LABELS.changePinFull
+        document.documentElement.appendChild(tip)
+        function showTip() {
+          var r = trigger.getBoundingClientRect()
+          tip.style.display = 'block'
+          tip.style.left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 8)) + 'px'
+          tip.style.top = Math.max(8, r.top - tip.offsetHeight - 8) + 'px'
+        }
+        function hideTip() { tip.style.display = 'none' }
+        trigger.addEventListener('mouseenter', showTip)
+        trigger.addEventListener('mouseleave', hideTip)
+        trigger.addEventListener('focus', showTip)
+        trigger.addEventListener('blur', hideTip)
 
         var msg = panel.querySelector('#bh-m-msg')
         function say(text) { if (msg) msg.textContent = text }
@@ -613,7 +642,7 @@ window.__ModuleLoader__.load({
                 altNote.textContent = '宿主未连接'
                 hello.style.display = 'none'
               } else if (setup) {
-                hint.textContent = '首次启动 · 设置访问 PIN（4-8 位数字）'
+                hint.textContent = '首次启动 · 设置登录密码（4-8 位数字）'
                 hello.style.display = 'none'
               } else if (status.hello === 'unavailable') {
                 hello.style.display = 'none'
