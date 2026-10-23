@@ -171,7 +171,7 @@ window.__ModuleLoader__.load({
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
-      '<button class="bh-recover bh-mono" id="bh-recover" type="button">PIN 输错被锁了？邮箱验证码跳过</button>',
+      '<button class="bh-recover bh-mono" id="bh-recover" type="button">PIN 输错被锁了？用验证码跳过</button>',
       '<div class="bh-recover-box" id="bh-recover-box" style="display:none">',
       '<div class="bh-recover-hint bh-mono" id="bh-recover-hint"></div>',
       '<div class="bh-auth-row">',
@@ -564,8 +564,8 @@ window.__ModuleLoader__.load({
                     var data = out.data || {}
                     if (data.ok) {
                       recoverBox.style.display = ''
-                      recoverHint.textContent = '验证码已发往 ' + (data.masked || '你的邮箱') +
-                        ' · 5 分钟内有效'
+                      recoverHint.textContent = (data.channel === 'sms' ? '短信验证码' : '邮件验证码') +
+                        '已发往 ' + (data.masked || '你的设备') + ' · 5 分钟内有效'
                       hint.textContent = '输入邮件里的 6 位验证码'
                       try { codeInput.focus() } catch (e) {}
                       return
