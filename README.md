@@ -116,6 +116,23 @@ A：目前界面文案是中文，代码里没有硬编码依赖，欢迎 PR。
 - 启动画面从点击到出现仍受 Electron 本体启动时间影响，插件只负责"出现之后"的那段。
 - 「直接进入（跳过验证）」是双入口模式的临时按钮，稳定几版后会移除。
 
+## 参考动画与致谢
+
+本项目的**视觉语言与分幕节奏**参考了下面这条视频，并沿着它的出处一路往上追到了三位更早的作者。
+**我们只做形式参考与工程重写，没有搬用任何原作者的素材或代码。**
+
+- 《deepseek 那些豪气冲天的启动动画》— @熟橘枯摘 · [BV1T7nM6xEqo](https://www.bilibili.com/video/BV1T7nM6xEqo)
+
+它自己标注的三条源头：
+
+| 灵感来源 | 作者 | 原仓库 |
+|---|---|---|
+| 最早的启动动画（按空格/回车推进的第一幕） | 沈宏宏 | [6shenhonghong9/dsh-startup-screen](https://github.com/6shenhonghong9/dsh-startup-screen) |
+| 龙娘启动动画（线描手法） | @mytjxs | [mytjxs/codex-startup-animation](https://github.com/mytjxs/codex-startup-animation) |
+| 550C 启动动画 | @yannicksong0106 | [yannicksong0106/dsh-550c-boot](https://github.com/yannicksong0106/dsh-550c-boot) |
+
+如果这几样对你有用，请去原仓库点个 star——功劳是他们的。
+
 ## License
 
 MIT
