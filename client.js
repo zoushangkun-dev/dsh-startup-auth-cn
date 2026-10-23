@@ -190,6 +190,22 @@ window.__ModuleLoader__.load({
       '<button class="sc-btn" id="bh-totp-go" type="button">验证</button>',
       '</div>',
       '</div>',
+      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">修改访问 PIN</button>',
+      '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
+      '<div class="bh-recover-hint" id="bh-pinchange-hint">'
+      + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
+      '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-current" type="password"',
+      ' inputmode="numeric" maxlength="8" autocomplete="current-password"',
+      ' spellcheck="false" placeholder="当前 PIN（刚验证过可留空）" aria-label="当前 PIN"></div>',
+      '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-next" type="password"',
+      ' inputmode="numeric" maxlength="8" autocomplete="new-password"',
+      ' spellcheck="false" placeholder="新 PIN（4-8 位数字）" aria-label="新 PIN"></div>',
+      '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-confirm" type="password"',
+      ' inputmode="numeric" maxlength="8" autocomplete="new-password"',
+      ' spellcheck="false" placeholder="再输一次新 PIN" aria-label="确认新 PIN">',
+      '<button class="sc-btn" id="bh-pc-go" type="button">保存</button></div>',
+      '<div class="bh-recover-hint" id="bh-pc-msg"></div>',
+      '</div>',
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-trial bh-mono" id="bh-trial">双入口模式 · 稳定后会把「直接进入」移除</div>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
@@ -727,6 +743,53 @@ window.__ModuleLoader__.load({
                 })
                 totpInput.addEventListener('keydown', function (e) {
                   if (e.key === 'Enter') { e.preventDefault(); submitTotp() }
+                })
+              }
+
+              // Change the PIN from here. The whole reason this exists: the old
+              // way meant leaving the app, and a half-finished change out there
+              // could lock an account nobody can open.
+              var pcBtn = $('bh-pinchange'), pcBox = $('bh-pinchange-box')
+              var pcCur = $('bh-pc-current'), pcNext = $('bh-pc-next')
+              var pcConfirm = $('bh-pc-confirm'), pcGo = $('bh-pc-go'), pcMsg = $('bh-pc-msg')
+
+              function pcSay(text) { if (pcMsg) pcMsg.textContent = text }
+
+              if (pcBtn && pcBox) {
+                pcBtn.addEventListener('click', function () {
+                  sound.click()
+                  pcBox.style.display = pcBox.style.display === 'none' ? 'block' : 'none'
+                  if (pcBox.style.display === 'block' && pcNext) pcNext.focus()
+                })
+              }
+
+              if (pcGo) {
+                pcGo.addEventListener('click', function () {
+                  sound.click()
+                  var next = String(pcNext && pcNext.value || '').trim()
+                  var confirm = String(pcConfirm && pcConfirm.value || '').trim()
+                  var current = String(pcCur && pcCur.value || '').trim()
+                  if (!/^\d{4,8}$/.test(next)) return pcSay('新 PIN 需要 4-8 位数字')
+                  if (next !== confirm) return pcSay('两次输入不一致')
+                  pcGo.disabled = true
+                  pcSay('正在保存…')
+                  postJSON('/boot-auth/pin/change', { current: current, next: next, confirm: confirm })
+                    .then(function (out) {
+                      pcGo.disabled = false
+                      var data = out.data || {}
+                      if (out.status === 200) {
+                        if (pcNext) pcNext.value = ''
+                        if (pcConfirm) pcConfirm.value = ''
+                        if (pcCur) pcCur.value = ''
+                        sound.tick()
+                        return pcSay('已更新。下次开门用新的 PIN。')
+                      }
+                      if (data.error === '需要先验证身份' || data.error === '当前 PIN 不对') {
+                        if (pcCur) pcCur.focus()
+                      }
+                      pcSay(data.error || ('保存失败（HTTP ' + out.status + '）'))
+                    })
+                    .catch(function () { pcGo.disabled = false; pcSay('宿主没有响应') })
                 })
               }
 
