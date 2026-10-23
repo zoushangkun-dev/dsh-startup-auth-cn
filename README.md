@@ -1,90 +1,119 @@
 # dsh-boot-handmade
 
-给 DeepSeek Harness 的**冷启动动画 + 应用锁**。一个插件，两个能力：
+> 给 DeepSeek Harness 手搓的开机门：六幕冷启动动画，加上一把真正拦得住人的锁。
+> **纯前端 + 本地宿主半，零依赖、零联网、零第三方服务。**
 
-- **六幕开机动画**：黑幕鲸鱼线描 → 过曝洗白 → 暖白「技术档案」底板 → 访问授权 → 核验 → 色散故障揭幕 → 进聊天。
-- **真的应用锁**：验证环节不是演出，PIN 与 Windows Hello（指纹 / 人脸 / Hello PIN）由宿主进程校验，通过后发一枚 12 小时有效的会话 Cookie。
+<!-- 放一张 GIF 或截图：把 boot.gif 放到 docs/ 下再改这里 -->
+<!-- ![预览](docs/boot.gif) -->
 
 画面对应的是这条演示视频的视觉语言：<https://www.bilibili.com/video/BV1T7nM6xEqo>。
 全部用 DOM + CSS + SVG 画出来，没有视频、没有位图、没有第三方素材，任意分辨率都清晰；音效是 WebAudio 现场合成的。
 
-> **状态：v0.2.0，双入口模式。** 锁的 UI 旁边保留了一个「直接进入（跳过验证）」，等几个版本确认稳定后会移除。
+## 它是什么
+
+DeepSeek Harness 启动时先播一段六幕的开机动画（黑屏描边 → 过曝白闪 → 技术档案 → 权限门 → 核验 → 进入），
+然后停在一道**验证门**前：输 PIN、按指纹、或者填验证器动态码，三者任意一个通过才进得去工作区。
+
+它不是"开机自启个小窗"那种装饰，是**档在应用前面的最后一步**。
+
+## 三种开门方式
+
+| 方式 | 说明 |
+|---|---|
+| **访问 PIN** | 4–8 位数字，scrypt 加盐哈希存本地，连续错 5 次锁 30 秒 |
+| **Windows Hello** | 调用系统凭据验证（指纹 / 人脸 / Hello PIN），并把系统窗口强制置顶，不会被应用挡住 |
+| **验证器动态码** | 标准 TOTP（RFC 6238），手机扫码或手输密钥即可，**完全离线**；配 8 个一次性备用码防手机丢失 |
 
 ## 安装
 
-1. 完全退出 DeepSeek Harness（任务管理器里确认没有 `DeepSeek Harness` 进程）。
-2. 双击 `安装.cmd`（它会先检查进程和 CLI 路径，再 `dsh plugin add link:<本目录>`）。
-3. 重新打开客户端。
-
-首次启动会要求**设置 4–8 位数字 PIN**；设好之后每次冷启动要过验证。
-
-手动安装：
-
 ```powershell
-& "D:\dsh\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add "link:<本目录绝对路径>"
+# 1. 克隆到任意目录
+git clone https://github.com/OWNER/dsh-boot-handmade.git
+
+# 2. 装进 desktop profile（link 方式，改代码即时生效）
+& "D:\dsh\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add "link:<克隆到的路径>"
+
+# 3. 重开客户端
 ```
 
-> 客户端运行中直接装会报 `EPERM ... package.json.lock` —— 那是 profile 的 `package.json` 被进程占着，退出客户端再装即可。
+Windows 用户也可以直接双击仓库里的 `安装.cmd`（会先检查客户端是否已退出）。
 
-## 两种进不去时的逃生口
+> 装在哪个路径都可以，但**不要放在会被清理的临时目录**——profile 里存的是软链。
+> 客户端运行中直接装通常会成功（实测 pnpm 3.7 秒）；如果报 `EPERM ... package.json.lock`，退出客户端再装。
 
-| 逃生口 | 怎么用 |
+## 首次使用
+
+1. 重新打开客户端，动画播完会出现验证门；
+2. 先设一个 4–8 位 PIN（这一步会同时把你放进去）；
+3. 之后再启动，可以直接输 PIN，也可以点「用验证器 6 位码进入」先配好验证器。
+
+**强烈建议配置验证器**：点「设置验证器（6 位动态码）」→ 屏幕给出 32 位密钥 + 8 个备用码 →
+手机装 Microsoft Authenticator / Google Authenticator，选「其他账户 → 输入代码」，把密钥粘进去。
+
+> 那 8 个备用码**只显示一次**，请抄在纸上或存进密码管理器。手机丢了或刷机了，它是唯一退路。
+
+## 配置与数据
+
+全部在本机 `~/.dsh/` 下，插件不联网、不上传任何东西：
+
+| 文件 | 内容 |
 |---|---|
-| **直接进入** | 验证界面上的文字按钮，点一下就跳过（双入口模式临时保留） |
-| **急救绕过.cmd** | 创建 `%USERPROFILE%\.dsh\boot-auth-bypass`，宿主看到就直接放行；不需要界面 |
+| `boot-auth.json` | PIN 的 scrypt 哈希 + salt（不存明文） |
+| `boot-totp.json` | TOTP 密钥 + 备用码的 scrypt 哈希 |
+| `boot-recover.json` | 可选的邮件救援配置（收件地址 + SMTP 授权码） |
 
-> 早期的第 3 个逃生口「无操作 45 秒后自动放行」**已移除**：它等于让「什么都不做」也成为一种进入方式，
-> 和锁的本意冲突。现在停在门口不会自己开门，实在进不去用上面两条。
+## 逃生口与回滚
 
-撤销：`恢复锁定.cmd` 删掉标记文件；想连 PIN 一起清掉，删 `%USERPROFILE%\.dsh\boot-auth.json`。
+| 场景 | 怎么做 |
+|---|---|
+| 忘了 PIN / 被锁 30 秒 | 点「用验证器 6 位码进入」，或填备用码 |
+| 手机和电脑都不在手上 | 双击 `急救绕过.cmd`，创建一个标记文件，宿主看到就直接放行 |
+| 想彻底撤掉 | 双击 `卸载.cmd`，或 `dsh plugin --profile desktop remove dsh-boot-handmade` |
+| 想退回旧版本 | 双击 `回滚.cmd` 选择目标提交 |
 
-彻底卸载：双击 `卸载.cmd`。
+> 急救标记是一个本地文件：`%USERPROFILE%\.dsh\boot-auth-bypass`。删掉它（或双击 `恢复锁定.cmd`）即恢复验证。
+> **门不会因为"等久了"自己打开**——没有倒计时放行，也没有超时自动进入。
 
 ## 安全边界（请先读这段）
 
-- 这个锁保护的是**开机动画这一层**：没通过验证就不往下走。它**不是**对整个 Web 服务的门禁。
-- 一个懂技术的人可以直接打开开发者工具把动画节点删掉，或者直接访问宿主的接口。真正的强制门禁必须做在应用外壳前面，那超出了 profile 插件的能触及的范围。
-- PIN 用 scrypt（随机盐）存成哈希，落盘在 `~/.dsh/boot-auth.json`（`0600`）；会话令牌只在内存里，宿主重启即失效。
-- 连续 5 次输错锁 30 秒。
+**它是仪式感 + 家用门闩，不是保险箱。**
 
-换句话说：它是**仪式感 + 家用的门闩**，不是保险箱。别把唯一一份重要数据的访问权押在它身上。
+- 这个锁保护的是**动画和验证这一层**，不是整个 Web 服务：懂技术的人可以打开开发者工具删掉遮罩节点，或者直接调宿主接口。
+- 真正的强制门禁必须做在应用外壳前面（Electron 主进程 / 系统级），profile 插件够不着。
+- PIN 是 scrypt 加盐哈希，会话令牌只在内存，错 5 次锁 30 秒；TOTP 密钥和备用码哈希都在本机。
+- 但如果有人已经能读写你的用户目录，他可以直接删掉 `boot-auth.json` 绕过一切——这是本地锁的固有边界。
 
-## 微信 / QQ 登录
+换句话说：别把唯一一份重要数据的访问权押在它身上。
 
-界面里留了位置，状态是「未配置」。要真接上，需要你在**腾讯开放平台**注册应用、拿到 AppID/AppSecret、配好回调域名——这一步只能账号主人自己做。接口 `/boot-auth/oauth` 已经占好位（现在返回 501 + 说明），接上 OAuth 后把回调写进这个 handler 即可。
+## 常见问题
 
-## 目录
+**Q：点「Windows Hello」后系统窗口没出现，或者出现在应用后面？**
+A：插件会把 `Credential Dialog Xaml Host` 那个窗口强制置顶并抢前台。仍然没出现的话，先到锁屏试试指纹是否正常；不正常说明是本机指纹驱动在用户会话里起不来，需要修驱动，和插件无关。
 
-```
-client.js          六幕动画 + 验证 UI（344 行起，无构建步骤）
-lib/index.js       宿主半：/boot-auth/* 路由、PIN 校验、会话 Cookie、Hello 调用
-hello.ps1          Windows Hello 的 UserConsentVerifier 封装（-CheckOnly 只探测可用性）
-cordis.patch.yml   往 profile 插一行
-package.json       dsh.bundle.patch + dsh.client{platform:web, immediately:true}
-preview.html       浏览器直接打开就能看动画（宿主不在时会走「预览模式」）
-安装.cmd / 卸载.cmd / 急救绕过.cmd / 恢复锁定.cmd
-```
+**Q：验证器填了码一直说不对？**
+A：确认填的是 6 位、且是**当前**显示的码（30 秒一换，插件容忍前后 60 秒）。手机和电脑时间差太多也会对不上。
 
-## 自测
+**Q：动画太长 / 太闪？**
+A：门在约 0.8 秒后就可操作，装饰文字在门后面并行播放，不阻塞输入。频闪和撕裂效果已移除。
 
-```bash
-node tools/test_boot_auth.mjs     # 10 项：注册/校验/锁定/绕过/哈希存储
-powershell -File hello.ps1 -CheckOnly   # 只探测 Windows Hello 是否可用，不弹窗
-```
+**Q：能改成英文界面吗？**
+A：目前界面文案是中文，代码里没有硬编码依赖，欢迎 PR。
 
-## 致谢与素材来源
+## 技术细节
 
-视觉语言参考的是以下公开作品与那条演示视频，**没有复用任何原作者的素材**，本项目所有图形都是自己画的：
+- 动画：纯 DOM + CSS + SVG，**没有图片、没有字体文件、没有构建步骤**
+- 宿主半：一个 cordis 插件，注册 `/boot-auth/*` 路由
+- PIN / 备用码：`crypto.scryptSync` + 随机盐
+- TOTP：HMAC-SHA1，与 RFC 6238 官方向量对齐（仓库内 `tools/test_totp.mjs` 可复跑）
+- 邮件救援：调用 Windows 自带 `curl.exe` 走 SMTPS，不引任何依赖
+- 测试：`tools/test_boot_auth.mjs`（宿主 10 项）、`tools/test_totp.mjs`（24 项）、`tools/test_recovery.mjs`（14 项）
 
-| 参考 | 作者 |
-|---|---|
-| 最早的启动动画（按空格/回车推进的那支） | 沈宏宏 [@6shenhonghong9](https://github.com/6shenhonghong9/dsh-startup-screen) |
-| 龙娘启动动画（线描研究） | [@mytjxs](https://github.com/mytjxs/codex-startup-animation) |
-| 550C 启动动画（复刻学习对象） | [@yannicksong0106](https://github.com/yannicksong0106/dsh-550c-boot) |
-| 演示视频 | [BV1T7nM6xEqo](https://www.bilibili.com/video/BV1T7nM6xEqo) |
+## 已知限制
 
-喜欢这些动画的话，请去原作者的仓库点 star。
+- 应用内指纹依赖本机 Windows Hello 驱动；部分老驱动只能在锁屏用，应用内验证窗会拿不到采样。
+- 启动画面从点击到出现仍受 Electron 本体启动时间影响，插件只负责"出现之后"的那段。
+- 「直接进入（跳过验证）」是双入口模式的临时按钮，稳定几版后会移除。
 
-## 许可
+## License
 
-MIT，只覆盖本项目的原创代码与文案。
+MIT
