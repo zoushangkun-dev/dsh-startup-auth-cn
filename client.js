@@ -124,8 +124,6 @@ window.__ModuleLoader__.load({
       '.bh-direct:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
       '.bh-trial{margin-top:4px;font-size:9px;letter-spacing:.16em;color:#b3ada2}',
       '.bh-auth-err{margin-top:10px;font-size:11px;letter-spacing:.1em;color:#c2401a;min-height:14px}',
-      '.bh-alt{margin-top:12px;font-size:10px;letter-spacing:.2em;color:#a29c92}',
-      '.bh-alt span{color:#c0bab0;margin-left:8px}',
       '.bh-shake{animation:bh-shake .34s ease}',
       '@keyframes bh-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}',
       '50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}',
@@ -171,15 +169,6 @@ window.__ModuleLoader__.load({
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
-      '<button class="bh-recover bh-mono" id="bh-recover" type="button">PIN 输错被锁了？用验证码跳过</button>',
-      '<div class="bh-recover-box" id="bh-recover-box" style="display:none">',
-      '<div class="bh-recover-hint bh-mono" id="bh-recover-hint"></div>',
-      '<div class="bh-auth-row">',
-      '<input class="bh-pin" id="bh-code" type="text" inputmode="numeric" maxlength="6"',
-      ' autocomplete="one-time-code" spellcheck="false" aria-label="邮箱验证码">',
-      '<button class="sc-btn" id="bh-code-go" type="button">验证</button>',
-      '</div>',
-      '</div>',
       '<button class="bh-recover bh-mono" id="bh-totp-setup" type="button" style="display:none">用验证器 6 位码进入</button>',
       '<div class="bh-recover-box" id="bh-totp-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-totp-hint"></div>',
@@ -216,7 +205,6 @@ window.__ModuleLoader__.load({
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-trial bh-mono" id="bh-trial">双入口模式 · 稳定后会把「直接进入」移除</div>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
-      '<div class="bh-alt bh-mono">微信 / QQ <span id="bh-alt-note">未配置</span></div>',
       '</div>',
       '</div>',
       '<div class="sc-ring">',
@@ -626,7 +614,6 @@ window.__ModuleLoader__.load({
               var go = $('bh-go')
               var hello = $('bh-hello')
               var errBox = $('bh-auth-err')
-              var altNote = $('bh-alt-note')
               var direct = $('bh-direct')
               if (!box) return resolve('no-ui')
               // Escape hatch #1: the host-side flag file says the lock is off.
