@@ -91,10 +91,11 @@ public class BhWin {
   $form.Controls.Add($bar)
   Write-Log 'form built'
 
+  $spawned = $null
   if (-not $Demo) {
     if (Test-Path -LiteralPath $Exe) {
-      Start-Process -FilePath $Exe -ErrorAction SilentlyContinue
-      Write-Log 'exe started'
+      try { $spawned = Start-Process -FilePath $Exe -PassThru -ErrorAction SilentlyContinue } catch { }
+      Write-Log ('exe started, pid=' + [string]($spawned.Id))
     } else {
       Show-Error ('Executable not found: ' + $Exe)
     }
@@ -103,10 +104,29 @@ public class BhWin {
   $state = @{ elapsed = 0 }
   $timer = New-Object System.Windows.Forms.Timer
   $timer.Interval = 120
+  # 这两句用码点拼，避免 UTF-8 文件在别的代码页下变乱码。
+  $msgWait = -join (@(0x5DF2,0x6709,0x5B9E,0x4F8B,0x5728,0x540E,0x53F0,0xFF0C,0x7B49,0x5F85,0x7A97,0x53E3) | ForEach-Object { [char]$_ })
+  $msgFail = -join (@(0x8BF7,0x5728,0x4EFB,0x52A1,0x7BA1,0x7406,0x5668,0x7ED3,0x675F,0x20,0x44,0x53,0x48,0x20,0x540E,0x91CD,0x8BD5) | ForEach-Object { [char]$_ })
   $timer.Add_Tick({
     $state.elapsed += 120
     $w = [Math]::Min(356, [int](356 * ($state.elapsed / 2500.0)))
     if ($w -gt $bar.Width) { $bar.Width = $w }
+
+    # 启动的进程已经退出、而系统里还有别的同名进程：单实例锁把它挡回来了，
+    # 那个后台实例又没有窗口，所以什么都不会出现。
+    if (-not $Demo -and $state.elapsed -ge 5000 -and $msg.Text -ne $msgWait) {
+      $alive = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowHandle -eq 0 })
+      if ($spawned -and $spawned.HasExited -and $alive.Count -gt 0) {
+        $msg.Text = $msgWait
+        Write-Log ('blocked by a windowless instance, count=' + $alive.Count)
+      }
+    }
+    if (-not $Demo -and $state.elapsed -ge 20000 -and ($msg.Text -eq $msgWait)) {
+      $msg.Text = $msgFail
+      $msg.ForeColor = [System.Drawing.Color]::FromArgb(255, 90, 31)
+      Write-Log 'gave up: no window after 20s'
+    }
     if (-not $Demo) {
       $hit = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
         Where-Object { $_.MainWindowHandle -ne 0 })
