@@ -190,6 +190,13 @@ window.__ModuleLoader__.load({
       '<button class="sc-btn" id="bh-totp-go" type="button">验证</button>',
       '</div>',
       '</div>',
+      '<button class="bh-recover bh-mono" id="bh-account" type="button">DeepSeek 账号</button>',
+      '<div class="bh-recover-box" id="bh-account-box" style="display:none">',
+      '<div class="bh-recover-hint" id="bh-account-hint">'
+      + '账号的登录与切换由 DSH 自带界面负责。通过验证后进入，会自动帮你打开账号菜单。</div>',
+      '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
+      '<div class="bh-recover-hint" id="bh-account-msg"></div>',
+      '</div>',
       '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">修改访问 PIN</button>',
       '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-pinchange-hint">'
@@ -297,6 +304,7 @@ window.__ModuleLoader__.load({
       var sound = Beep()
       var finished = false
       var watchdog = null
+      var onGateClosed = null   // 门前选过“打开账号界面”的话，进门后执行它
 
       // Cheap timeline so "it hangs" can be pinpointed instead of guessed.
       function mark(stage) {
@@ -747,6 +755,58 @@ window.__ModuleLoader__.load({
               }
 
               // Change the PIN from here. The whole reason this exists: the old
+              // Accounts belong to the app, not to us: this only opens the app's
+              // own account UI once the gate is gone. The reason it exists at all
+              // is that people cannot find that entry themselves.
+              var acBtn = $('bh-account'), acBox = $('bh-account-box')
+              var acGo = $('bh-account-go'), acMsg = $('bh-account-msg')
+              var openAccountAfterGate = false
+
+              if (acBtn && acBox) {
+                acBtn.addEventListener('click', function () {
+                  sound.click()
+                  acBox.style.display = acBox.style.display === 'none' ? 'block' : 'none'
+                  if (acBox.style.display === 'block' && acGo) acGo.focus()
+                })
+              }
+              if (acGo) {
+                acGo.addEventListener('click', function () {
+                  sound.click()
+                  openAccountAfterGate = true
+                  if (acMsg) acMsg.textContent = '先完成验证，进入后自动打开账号菜单。'
+                  if (acGo) acGo.disabled = true
+                })
+              }
+
+              // Best effort, but harmless: if none of these match, the person is
+              // already inside and the app is exactly where it started.
+              onGateClosed = function () {
+                if (openAccountAfterGate) openAppAccountUi()
+              }
+
+              function openAppAccountUi() {
+                if (!openAccountAfterGate) return
+                openAccountAfterGate = false
+                var selectors = [
+                  '[data-testid="account"]', '[data-testid="user-menu"]',
+                  '[aria-label*="账号"]', '[aria-label*="帐号"]', '[aria-label*="account" i]',
+                  '.account-chip', '.user-menu', '.avatar',
+                ]
+                var tries = 0
+                var timer = setInterval(function () {
+                  tries += 1
+                  for (var i = 0; i < selectors.length; i += 1) {
+                    var el = document.querySelector(selectors[i])
+                    if (el) {
+                      clearInterval(timer)
+                      try { el.click() } catch (e) {}
+                      return
+                    }
+                  }
+                  if (tries >= 30) clearInterval(timer)   // give up after ~3 s
+                }, 100)
+              }
+
               // way meant leaving the app, and a half-finished change out there
               // could lock an account nobody can open.
               var pcBtn = $('bh-pinchange'), pcBox = $('bh-pinchange-box')
@@ -863,6 +923,8 @@ window.__ModuleLoader__.load({
         await wait(420)
 
         finish()
+        // The overlay is gone at this point; the app is interactive again.
+        setTimeout(function () { if (onGateClosed) onGateClosed() }, 500)
       }
 
       run().catch(function (err) {
