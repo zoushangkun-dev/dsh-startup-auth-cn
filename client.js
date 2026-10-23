@@ -326,14 +326,16 @@ window.__ModuleLoader__.load({
             'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
             'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
             '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
-            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147483646;pointer-events:auto;width:320px;',
+            '#bh-manage{position:fixed;right:84px;bottom:76px;z-index:2147483646;pointer-events:auto;width:320px;',
             'display:none;padding:16px;border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
             'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
             '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
             '#bh-manage .bh-manage-row{margin-bottom:8px}',
             '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
-            '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
-            'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
+            '#bh-manage .bh-manage-close{position:absolute;top:2px;right:2px;border:0;z-index:5;',
+            'width:34px;height:34px;line-height:32px;text-align:center;border-radius:6px;',
+            'background:transparent;color:#8d887e;font-size:18px;cursor:pointer;pointer-events:auto}',
+            '#bh-manage .bh-manage-close:hover{background:#232330;color:#f3eee4}',
             '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
             '#bh-manage .sc-btn{width:100%}',
             '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
@@ -388,9 +390,21 @@ window.__ModuleLoader__.load({
         fab.addEventListener('click', function () {
           panel.style.display = panel.style.display === 'block' ? 'none' : 'block'
         })
-        panel.querySelector('.bh-manage-close').addEventListener('click', function () {
-          panel.style.display = 'none'
+        function closePanel() { panel.style.display = 'none' }
+
+        // 三条独立的路：叉号、Esc、点面板外面。挂件抢走叉号的点击也不影响。
+        panel.querySelector('.bh-manage-close').addEventListener('click', function (e) {
+          e.stopPropagation()
+          closePanel()
         })
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && panel.style.display === 'block') closePanel()
+        })
+        document.addEventListener('mousedown', function (e) {
+          if (panel.style.display !== 'block') return
+          if (panel.contains(e.target) || e.target === fab) return
+          closePanel()
+        }, true)
         panel.querySelector('#bh-m-go').addEventListener('click', function () {
           var cur = String(panel.querySelector('#bh-m-current').value || '').trim()
           var next = String(panel.querySelector('#bh-m-next').value || '').trim()
