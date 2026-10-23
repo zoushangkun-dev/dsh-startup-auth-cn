@@ -733,10 +733,10 @@ window.__ModuleLoader__.load({
         // makes people think the launch failed and click again (which starts
         // more processes). The gate is usable after ~1 s; the decorative beats
         // play *behind* it instead of blocking it.
-        await wait(360)
+        await wait(140)
         setScene('sb')
         $('bh-wash').classList.add('go')
-        await wait(420)
+        await wait(260)
         setScene('sc')
         sound.tick()
 
@@ -761,23 +761,25 @@ window.__ModuleLoader__.load({
         if (note) note.textContent = '核验操作者身份与权限等级。'
         ring(58)
         st.textContent = '05 / 08 | IDENTITY'
-        await typeInto(en, 'IDENTITY VERIFICATION', 14)
-        await addRow('身份名称  OPERATOR')
-        await addRow('证件编号  DSH-0027-6.0.16')
-        await addRow('权限等级  LEVEL-3 · 已授权')
+
+        // Decoration only — the unlock already happened, so let the rows land
+        // together instead of making the person sit through 220 ms each.
+        typeInto(en, 'IDENTITY VERIFICATION', 14).catch(function () {})
+        addRow('身份名称  OPERATOR').catch(function () {})
+        setTimeout(function () { addRow('证件编号  DSH-0027-6.0.16').catch(function () {}) }, 70)
+        setTimeout(function () { addRow('权限等级  LEVEL-3 · 已授权').catch(function () {}) }, 140)
+
+        await wait(260)
 
         zh.textContent = '读取完毕 · 核验通过'
         en.textContent = 'READ COMPLETE · VERIFIED'
         if (note) note.textContent = '权限已授予，正在进入工作区。'
         ring(100)
         st.textContent = '08 / 08 | VERIFY'
-        await wait(220)
-        // Calm hand-off: the old chromatic glitch strobed six times at 90 ms and
-        // read as a disco light. A short, quiet pause instead.
+        await wait(180)
         sound.tick()
-        await wait(320)
+        await wait(220)
 
-        await wait(320)
         finish()
       }
 
