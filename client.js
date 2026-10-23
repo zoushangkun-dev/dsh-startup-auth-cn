@@ -164,10 +164,10 @@ window.__ModuleLoader__.load({
       '<div class="sc-note" id="bh-note"></div>',
       '<div class="bh-rows bh-mono" id="bh-rows"></div>',
       '<div class="bh-auth" id="bh-auth">',
-      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
+      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入访问 PIN</div>',
       '<div class="bh-auth-row">',
       '<input class="bh-pin" id="bh-pin" type="password" inputmode="numeric" maxlength="8"',
-      ' autocomplete="off" spellcheck="false" aria-label="登录密码">',
+      ' autocomplete="off" spellcheck="false" aria-label="访问 PIN">',
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
@@ -197,7 +197,7 @@ window.__ModuleLoader__.load({
       '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
       '<div class="bh-recover-hint" id="bh-account-msg"></div>',
       '</div>',
-      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">更改登录密码</button>',
+      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">修改访问 PIN</button>',
       '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-pinchange-hint">'
       + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
@@ -311,6 +311,90 @@ window.__ModuleLoader__.load({
         try { console.debug('[boot-handmade]', stage, Math.round(performance.now()) + 'ms') } catch (e) {}
       }
 
+      // 门一关，门里的「修改 PIN」就找不到了。这里留一个常驻的小入口，
+      // 进了应用也随时能改；点开只是一个小面板，不进第二次验证。
+      function mountInAppEntry() {
+        if (document.getElementById('bh-fab')) return
+
+        // finish() removes the gate stylesheet, so this entry carries its own.
+        if (!document.getElementById('bh-fab-style')) {
+          var own = document.createElement('style')
+          own.id = 'bh-fab-style'
+          own.textContent = [
+            '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
+            'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
+            'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
+            'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
+            '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
+            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147482001;width:320px;',
+            'display:none;padding:16px;border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
+            'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
+            '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
+            '#bh-manage .bh-manage-row{margin-bottom:8px}',
+            '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
+            '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
+            'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
+            '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
+            '#bh-manage .sc-btn{width:100%}',
+            '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
+          ].join('')
+          document.head.appendChild(own)
+        }
+
+        var fab = document.createElement('button')
+        fab.id = 'bh-fab'
+        fab.type = 'button'
+        fab.title = '更改登录细节'
+        fab.setAttribute('aria-label', '更改登录细节')
+        fab.textContent = '⚿'
+        document.documentElement.appendChild(fab)
+
+        var panel = document.createElement('div')
+        panel.id = 'bh-manage'
+        panel.innerHTML =
+          '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
+          '<h4 id="bh-m-title">更改登录细节</h4>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password"' +
+          ' inputmode="numeric" maxlength="8" placeholder="当前 PIN" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password"' +
+          ' inputmode="numeric" maxlength="8" placeholder="新 PIN（4-8 位数字）" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password"' +
+          ' inputmode="numeric" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
+          '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
+          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>'
+        document.documentElement.appendChild(panel)
+
+        var msg = panel.querySelector('#bh-m-msg')
+        function say(text) { if (msg) msg.textContent = text }
+
+        fab.addEventListener('click', function () {
+          panel.style.display = panel.style.display === 'block' ? 'none' : 'block'
+        })
+        panel.querySelector('.bh-manage-close').addEventListener('click', function () {
+          panel.style.display = 'none'
+        })
+        panel.querySelector('#bh-m-go').addEventListener('click', function () {
+          var cur = String(panel.querySelector('#bh-m-current').value || '').trim()
+          var next = String(panel.querySelector('#bh-m-next').value || '').trim()
+          var confirm = String(panel.querySelector('#bh-m-confirm').value || '').trim()
+          if (!/^\d{4,8}$/.test(next)) return say('新 PIN 需要 4-8 位数字')
+          if (next !== confirm) return say('两次输入不一致')
+          say('正在保存…')
+          postJSON('/boot-auth/pin/change', { current: cur, next: next, confirm: confirm })
+            .then(function (out) {
+              var data = out.data || {}
+              if (out.status === 200) {
+                panel.querySelector('#bh-m-current').value = ''
+                panel.querySelector('#bh-m-next').value = ''
+                panel.querySelector('#bh-m-confirm').value = ''
+                return say('已更新，下次开门用新 PIN。')
+              }
+              say(data.error || ('保存失败（HTTP ' + out.status + '）'))
+            })
+            .catch(function () { say('宿主没有响应') })
+        })
+      }
+
       function finish() {
         if (finished) return
         finished = true
@@ -322,6 +406,8 @@ window.__ModuleLoader__.load({
           try { root.remove() } catch (e) {}
           try { style.remove() } catch (e) {}
         }, 700)
+        // 门的样式被移除了，常驻入口要自己带一份。
+        try { mountInAppEntry() } catch (e) {}
       }
 
       // No auto-dismiss: a gate that removes itself after 90 seconds is just
@@ -428,7 +514,7 @@ window.__ModuleLoader__.load({
                 altNote.textContent = '宿主未连接'
                 hello.style.display = 'none'
               } else if (setup) {
-                hint.textContent = '首次启动 · 设置登录密码（4-8 位数字）'
+                hint.textContent = '首次启动 · 设置访问 PIN（4-8 位数字）'
                 hello.style.display = 'none'
               } else if (status.hello === 'unavailable') {
                 hello.style.display = 'none'
@@ -504,45 +590,23 @@ window.__ModuleLoader__.load({
                 hello.disabled = true
                 hint.textContent = auto ? '等待指纹 / 人脸…' : '等待 Windows 验证…'
                 if (altNote) altNote.textContent = '系统验证窗已置顶 · 取消则回到 PIN'
-                // Windows reuses CredentialUIBroker.exe. If the previous dialog
-                // was dismissed mid-capture, the broker holds a dead session and
-                // the next prompt never samples. Reset it once, then retry, so a
-                // cancelled prompt does not wedge the fingerprint for the session.
-                function askHello(allowRetry) {
-                  postJSON('/boot-auth/hello', {}).then(function (out) {
-                    if (gateClosed) { helloBusy = false; hello.disabled = false; return }
-                    if (out.data && out.data.ok) {
-                      helloBusy = false
-                      hello.disabled = false
-                      sound.thunk()
-                      return done('hello')
-                    }
-                    var reason = String((out.data && out.data.reason) || '')
-                    var stuck = /Canceled|RetriesExhausted|no-result|timed/i.test(reason)
-                    if (allowRetry && stuck) {
-                      hint.textContent = '正在重置指纹会话…'
-                      postJSON('/boot-auth/hello/reset', {}).then(function () {
-                        hint.textContent = '正在重试…'
-                        askHello(false)
-                      }).catch(function () { askHello(false) })
-                      return
-                    }
-                    helloBusy = false
-                    hello.disabled = false
-                    if (altNote) altNote.textContent = ''
-                    // Only a real rejection is a PIN error. A cancelled or broken
-                    // Windows Hello prompt must not clear the PIN field or steal
-                    // the focus from whatever the person was typing.
-                    errBox.textContent = helloReasonText(
-                      out.data && out.data.reason, out.data && out.data.availability)
-                    sound.nope()
-                  }).catch(function () {
-                    helloBusy = false
-                    hello.disabled = false
-                    if (!gateClosed) fail('无法调用 Windows Hello')
-                  })
-                }
-                askHello(true)
+                postJSON('/boot-auth/hello', {}).then(function (out) {
+                  helloBusy = false
+                  hello.disabled = false
+                  if (gateClosed) return
+                  if (out.data && out.data.ok) { sound.thunk(); return done('hello') }
+                  if (altNote) altNote.textContent = ''
+                  // Only a real rejection is a PIN error. A cancelled or broken
+                  // Windows Hello prompt must not clear the PIN field or steal
+                  // the focus from whatever the person was typing.
+                  errBox.textContent = helloReasonText(
+                    out.data && out.data.reason, out.data && out.data.availability)
+                  sound.nope()
+                }).catch(function () {
+                  helloBusy = false
+                  hello.disabled = false
+                  if (!gateClosed) fail('无法调用 Windows Hello')
+                })
               }
 
               hello.addEventListener('click', function () { sound.click(); startHello(false) })
