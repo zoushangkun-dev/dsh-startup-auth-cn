@@ -762,23 +762,26 @@ window.__ModuleLoader__.load({
         ring(58)
         st.textContent = '05 / 08 | IDENTITY'
 
-        // Decoration only — the unlock already happened, so let the rows land
-        // together instead of making the person sit through 220 ms each.
+        // Decoration only — the unlock already happened. Rows land in a
+        // staggered wave so the verification reads as work being done, instead
+        // of a 0.6 s blink, without going back to one-await-per-row.
         typeInto(en, 'IDENTITY VERIFICATION', 14).catch(function () {})
         addRow('身份名称  OPERATOR').catch(function () {})
-        setTimeout(function () { addRow('证件编号  DSH-0027-6.0.16').catch(function () {}) }, 70)
-        setTimeout(function () { addRow('权限等级  LEVEL-3 · 已授权').catch(function () {}) }, 140)
+        setTimeout(function () { addRow('证件编号  DSH-0027-6.0.16').catch(function () {}) }, 130)
+        setTimeout(function () { addRow('权限等级  LEVEL-3 · 已授权').catch(function () {}) }, 260)
+        setTimeout(function () { ring(72); addRow('会话令牌  已签发 · TTL 12h').catch(function () {}) }, 390)
+        setTimeout(function () { ring(86); addRow('审计记录  已落盘').catch(function () {}) }, 520)
 
-        await wait(260)
+        await wait(700)
 
         zh.textContent = '读取完毕 · 核验通过'
         en.textContent = 'READ COMPLETE · VERIFIED'
         if (note) note.textContent = '权限已授予，正在进入工作区。'
         ring(100)
         st.textContent = '08 / 08 | VERIFY'
-        await wait(180)
+        await wait(260)
         sound.tick()
-        await wait(220)
+        await wait(300)
 
         finish()
       }
