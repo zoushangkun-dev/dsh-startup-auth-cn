@@ -249,7 +249,7 @@ window.__ModuleLoader__.load({
           osc.stop(t + dur + 0.02)
         } catch (e) { /* decoration only */ }
       }
-      return { tick: function () { hit(880, 0.06, 0.05) }, thunk: function () { hit(160, 0.22, 0.09) }, nope: function () { hit(120, 0.18, 0.08) } }
+      return { tick: function () { hit(880, 0.06, 0.05) }, thunk: function () { hit(160, 0.22, 0.09) }, nope: function () { hit(120, 0.18, 0.08) }, click: function () { hit(1480, 0.035, 0.055); hit(990, 0.03, 0.02) } }
     }
 
     function postJSON(url, body) {
@@ -418,7 +418,7 @@ window.__ModuleLoader__.load({
               // gate has proven itself.
               if (direct) {
                 direct.addEventListener('click', function () {
-                  sound.thunk()
+                  sound.click()
                   done('direct')
                 })
               }
@@ -455,7 +455,7 @@ window.__ModuleLoader__.load({
                   .catch(function () { go.disabled = false; fail('宿主没有响应') })
               }
 
-              go.addEventListener('click', submit)
+              go.addEventListener('click', function () { sound.click(); submit() })
               input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') { e.preventDefault(); submit() }
               })
@@ -491,7 +491,7 @@ window.__ModuleLoader__.load({
                 })
               }
 
-              hello.addEventListener('click', function () { startHello(false) })
+              hello.addEventListener('click', function () { sound.click(); startHello(false) })
 
               // Ask the host what this machine can do right now: the flag stored
               // at enrolment time goes stale as soon as a driver gets fixed.
@@ -555,6 +555,7 @@ window.__ModuleLoader__.load({
 
               if (recoverBtn) {
                 recoverBtn.addEventListener('click', function () {
+                  sound.click()
                   if (offline || gateClosed) return
                   recoverBtn.disabled = true
                   errBox.textContent = ''
@@ -600,7 +601,7 @@ window.__ModuleLoader__.load({
               }
 
               if (codeGo) {
-                codeGo.addEventListener('click', verifyCode)
+                codeGo.addEventListener('click', function () { sound.click(); verifyCode() })
                 codeInput.addEventListener('keydown', function (e) {
                   if (e.key === 'Enter') { e.preventDefault(); verifyCode() }
                 })
@@ -632,6 +633,7 @@ window.__ModuleLoader__.load({
 
               if (totpSetupBtn) {
                 totpSetupBtn.addEventListener('click', function () {
+                  sound.click()
                   if (offline || gateClosed) return
                   if (totpConfigured) {
                     totpBox.style.display = ''
@@ -710,7 +712,7 @@ window.__ModuleLoader__.load({
               }
 
               if (totpGo) {
-                totpGo.addEventListener('click', submitTotp)
+                totpGo.addEventListener('click', function () { sound.click(); submitTotp() })
                 totpInput.addEventListener('input', function () {
                   // Backup codes carry letters, so only auto-fire on pure digits.
                   if (/^\d{6}$/.test(String(totpInput.value || ''))) submitTotp()
