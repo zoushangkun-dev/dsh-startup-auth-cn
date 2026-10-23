@@ -11,6 +11,13 @@ param(
   [switch]$Demo
 )
 
+# 写一行日志，便于确认这条链路真的跑起来了。
+try {
+  $log = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'launcher.log'
+  ((Get-Date).ToString('yyyy-MM-dd HH:mm:ss') + '  start  demo=' + [string]$Demo) |
+    Out-File -FilePath $log -Append -Encoding utf8
+} catch { }
+
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 
 # 已经有窗口了：直接退出，不重复启动。
