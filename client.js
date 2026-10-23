@@ -124,6 +124,8 @@ window.__ModuleLoader__.load({
       '.bh-direct:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
       '.bh-trial{margin-top:4px;font-size:9px;letter-spacing:.16em;color:#b3ada2}',
       '.bh-auth-err{margin-top:10px;font-size:11px;letter-spacing:.1em;color:#c2401a;min-height:14px}',
+      '.bh-alt{margin-top:12px;font-size:10px;letter-spacing:.2em;color:#a29c92}',
+      '.bh-alt span{color:#c0bab0;margin-left:8px}',
       '.bh-shake{animation:bh-shake .34s ease}',
       '@keyframes bh-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}',
       '50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}',
@@ -162,13 +164,22 @@ window.__ModuleLoader__.load({
       '<div class="sc-note" id="bh-note"></div>',
       '<div class="bh-rows bh-mono" id="bh-rows"></div>',
       '<div class="bh-auth" id="bh-auth">',
-      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
+      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入访问 PIN</div>',
       '<div class="bh-auth-row">',
       '<input class="bh-pin" id="bh-pin" type="password" inputmode="numeric" maxlength="8"',
-      ' autocomplete="off" spellcheck="false" aria-label="登录密码">',
+      ' autocomplete="off" spellcheck="false" aria-label="访问 PIN">',
       '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
+      '<button class="bh-recover bh-mono" id="bh-recover" type="button">PIN 输错被锁了？用验证码跳过</button>',
+      '<div class="bh-recover-box" id="bh-recover-box" style="display:none">',
+      '<div class="bh-recover-hint bh-mono" id="bh-recover-hint"></div>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-code" type="text" inputmode="numeric" maxlength="6"',
+      ' autocomplete="one-time-code" spellcheck="false" aria-label="邮箱验证码">',
+      '<button class="sc-btn" id="bh-code-go" type="button">验证</button>',
+      '</div>',
+      '</div>',
       '<button class="bh-recover bh-mono" id="bh-totp-setup" type="button" style="display:none">用验证器 6 位码进入</button>',
       '<div class="bh-recover-box" id="bh-totp-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-totp-hint"></div>',
@@ -186,7 +197,7 @@ window.__ModuleLoader__.load({
       '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
       '<div class="bh-recover-hint" id="bh-account-msg"></div>',
       '</div>',
-      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">更改登录密码</button>',
+      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">修改访问 PIN</button>',
       '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-pinchange-hint">'
       + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
@@ -205,6 +216,7 @@ window.__ModuleLoader__.load({
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-trial bh-mono" id="bh-trial">双入口模式 · 稳定后会把「直接进入」移除</div>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
+      '<div class="bh-alt bh-mono">微信 / QQ <span id="bh-alt-note">未配置</span></div>',
       '</div>',
       '</div>',
       '<div class="sc-ring">',
@@ -289,17 +301,6 @@ window.__ModuleLoader__.load({
       root.innerHTML = TEMPLATE
       document.documentElement.appendChild(root)
 
-      // 所有面向人的短文案集中在这里：以后加语言只改这一段。
-      // 短标签必须一眼能懂，长解释放在悬停提示里。
-      var LABELS = {
-        chip: '更改登录细节',
-        menuLogin: '更改登录',
-        menuLauncher: '更改启动方式',
-        changePinTitle: '更改登录 PIN',
-        launcherTitle: '启动方式（可选）',
-        saved: '已更新，下次开门用新 PIN。',
-      }
-
       var sound = Beep()
       var finished = false
       var watchdog = null
@@ -310,115 +311,49 @@ window.__ModuleLoader__.load({
         try { console.debug('[boot-handmade]', stage, Math.round(performance.now()) + 'ms') } catch (e) {}
       }
 
-      // 门一关，门里的「修改 PIN」就找不到了。这个入口优先挂到应用自己的
-      // 标题栏 / 已登录账号旁边，而不是浮在角落；那里最容易找。
-      //
-      // 但别的插件也会往同一处塞东西，所以这里有一层识别：插入后量一遍矩形，
-      // 和兄弟节点重叠就撤掉、退回角落里的浮标。之后仍有几次复查，因为别的
-      // 插件可能是稍后才注入的。
-      function overlapsRects(a, b) {
-        return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
-      }
-
-      function collidesWithSiblings(node) {
-        var r = node.getBoundingClientRect()
-        if (!r.width || !r.height) return true
-        var parent = node.parentElement
-        if (!parent) return true
-        for (var i = 0; i < parent.children.length; i += 1) {
-          var sib = parent.children[i]
-          if (sib === node) continue
-          var sr = sib.getBoundingClientRect()
-          if (!sr.width || !sr.height) continue
-          if (overlapsRects(r, sr)) return true
-        }
-        return false
-      }
-
-      // 锚点优先找左下角那块「已登录 DeepSeek」：叶子节点里带「已登录」的，
-      // 它的父节点就是那一行。找不到再退回头像 / 侧栏 / 标题栏。
-      function findAccountAnchor() {
-        var all = document.querySelectorAll('span,div,p,a,button')
-        for (var i = 0; i < all.length; i += 1) {
-          var el = all[i]
-          if (el.children && el.children.length) continue      // 只要叶子
-          var txt = (el.textContent || '').trim()
-          if (txt.length && txt.length < 40 && txt.indexOf('已登录') !== -1) {
-            if (el.parentElement && el.parentElement !== document.body) return el.parentElement
-          }
-        }
-        var probes = [
-          '[data-testid="account"]', '[data-testid="user-menu"]',
-          '[aria-label*="账号"]', '[aria-label*="帐号"]', '[aria-label*="account" i]',
-          '[class*="avatar"]', '[class*="account"]', '[class*="user-"]',
-        ]
-        for (var j = 0; j < probes.length; j += 1) {
-          var hit = document.querySelector(probes[j])
-          if (hit && hit.parentElement && hit.parentElement !== document.body) {
-            return hit.parentElement
-          }
-        }
-        var sidebar = document.querySelector('[class*="sidebar"], [class*="sider"]')
-        if (sidebar) {
-          var foot = sidebar.querySelector('footer, [class*="footer"], [class*="bottom"]')
-          if (foot) return foot
-          return sidebar
-        }
-        var header = document.querySelector('header, [class*="titlebar"]')
-        return header || null
-      }
-
-      function ensureEntryStyles() {
-        if (document.getElementById('bh-fab-style')) return
-        var own = document.createElement('style')
-        own.id = 'bh-fab-style'
-        own.textContent = [
-          '#bh-chip{height:24px;padding:0 9px;margin-left:6px;border:1px solid #3a3a46;border-radius:12px;',
-          'background:transparent;color:#8d887e;font-size:11px;letter-spacing:.08em;cursor:pointer;',
-          'transition:border-color .18s ease,color .18s ease;white-space:nowrap}',
-          '#bh-chip:hover{border-color:#ff5a1f;color:#ff5a1f}',
-          '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
-          'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
-          'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
-          'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
-          '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
-          '#bh-manage{position:fixed;right:20px;z-index:2147482001;width:320px;display:none;padding:16px;',
-          'border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
-          'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
-          '#bh-chip-tip{position:fixed;z-index:2147482002;padding:5px 9px;border-radius:6px;',
-          'background:#1c1c24;color:#f3eee4;font-size:11px;line-height:1.4;border:1px solid #3a3a46;',
-          'display:none;pointer-events:none;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.5)}',
-          '#bh-manage.in-footer{left:16px;bottom:120px}',
-          '#bh-manage.in-corner{bottom:76px}',
-          '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
-          '#bh-manage .bh-manage-row{margin-bottom:8px}',
-          '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
-          '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
-          'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
-          '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
-          '#bh-manage .sc-btn{width:100%}',
-          '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
-          '#bh-menu{position:fixed;z-index:2147482002;display:none;min-width:150px;padding:6px;',
-          'border:1px solid #3a3a46;border-radius:8px;background:#14141a;',
-          'box-shadow:0 10px 30px rgba(0,0,0,.55)}',
-          '#bh-menu button{display:block;width:100%;text-align:left;padding:7px 10px;border:0;',
-          'border-radius:5px;background:transparent;color:#c9c3b8;font-size:12px;cursor:pointer}',
-          '#bh-menu button:hover{background:#232330;color:#f3eee4}',
-
-        ].join('')
-        document.head.appendChild(own)
-      }
-
+      // 门一关，门里的「修改 PIN」就找不到了。这里留一个常驻的小入口，
+      // 进了应用也随时能改；点开只是一个小面板，不进第二次验证。
       function mountInAppEntry() {
-        if (document.getElementById('bh-fab') || document.getElementById('bh-chip')) return
-        ensureEntryStyles()
+        if (document.getElementById('bh-fab')) return
+
+        // finish() removes the gate stylesheet, so this entry carries its own.
+        if (!document.getElementById('bh-fab-style')) {
+          var own = document.createElement('style')
+          own.id = 'bh-fab-style'
+          own.textContent = [
+            '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
+            'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
+            'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
+            'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
+            '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
+            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147482001;width:320px;',
+            'display:none;padding:16px;border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
+            'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
+            '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
+            '#bh-manage .bh-manage-row{margin-bottom:8px}',
+            '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
+            '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
+            'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
+            '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
+            '#bh-manage .sc-btn{width:100%}',
+            '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
+          ].join('')
+          document.head.appendChild(own)
+        }
+
+        var fab = document.createElement('button')
+        fab.id = 'bh-fab'
+        fab.type = 'button'
+        fab.title = '更改登录细节'
+        fab.setAttribute('aria-label', '更改登录细节')
+        fab.textContent = '⚿'
+        document.documentElement.appendChild(fab)
 
         var panel = document.createElement('div')
         panel.id = 'bh-manage'
         panel.innerHTML =
           '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
-          '<h4 id="bh-m-title">' + LABELS.changePinTitle + '</h4>' +
-          '<div class="bh-sec" id="bh-sec-login">' +
+          '<h4 id="bh-m-title">更改登录细节</h4>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password"' +
           ' inputmode="numeric" maxlength="8" placeholder="当前 PIN" /></div>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password"' +
@@ -427,48 +362,13 @@ window.__ModuleLoader__.load({
           ' inputmode="numeric" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
           '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>' +
-          '</div>' +
-          '<div class="bh-sec" id="bh-sec-launcher" style="display:none">' +
-          '<div class="bh-manage-note" id="bh-l-state">正在检查…</div>' +
+          '<div class="bh-manage-sep"></div>' +
+          '<div class="bh-manage-note" id="bh-l-state">启动方式：检查中…</div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-l-go" type="button">'
-          + '启用桌面启动器</button></div>' +
-          '<div class="bh-manage-note">只在点下去那一刻给反馈，避免连点；'
-          + '原来的快捷方式保留，不满意随时卸掉。</div>' +
-          '</div>'
+          + '启用桌面启动器</button></div>'
         document.documentElement.appendChild(panel)
-        try { console.debug('[boot-handmade] entry panel ready') } catch (e) {}
 
-        // 先试标题栏，撞了就退到角落。
-        var trigger = null
-        var anchor = findAccountAnchor()
-        if (anchor) {
-          var chip = document.createElement('button')
-          chip.id = 'bh-chip'
-          chip.type = 'button'
-          chip.title = LABELS.chip
-          chip.setAttribute('aria-label', LABELS.chip + '：' + LABELS.menuLogin + ' / ' + LABELS.menuLauncher)
-          chip.textContent = LABELS.chip
-          anchor.appendChild(chip)
-          if (collidesWithSiblings(chip)) {
-            chip.remove()
-          } else {
-            trigger = chip
-            panel.classList.add('in-footer')
-          }
-        }
-        if (!trigger) {
-          var fab = document.createElement('button')
-          fab.id = 'bh-fab'
-          fab.type = 'button'
-          fab.title = LABELS.chip
-          fab.setAttribute('aria-label', LABELS.chip)
-          fab.textContent = '⚿'
-          document.documentElement.appendChild(fab)
-          trigger = fab
-          panel.classList.add('in-corner')
-        }
-
-        // 启动器是选装件：这里只查状态和装/卸，默认不动系统。
+        // 启动器是选装件：只查状态和装/卸，默认不动系统。
         var lState = panel.querySelector('#bh-l-state')
         var lGo = panel.querySelector('#bh-l-go')
         var launcherInstalled = false
@@ -477,13 +377,13 @@ window.__ModuleLoader__.load({
           launcherInstalled = !!(status && status.installed)
           if (!lState || !lGo) return
           if (status && status.available === false) {
-            lState.textContent = '这个版本里没有启动器文件'
+            lState.textContent = '启动方式：这个版本里没有启动器文件'
             lGo.disabled = true
             return
           }
           lState.textContent = launcherInstalled
-            ? '已启用：桌面上有「DeepSeek Harness (Launcher)」'
-            : '未启用（不影响使用，原来的快捷方式照旧）'
+            ? '启动方式：已启用（桌面有 Launcher 快捷方式）'
+            : '启动方式：未启用（原来的快捷方式照旧）'
           lGo.textContent = launcherInstalled ? '卸载启动器' : '启用桌面启动器'
           lGo.disabled = false
         }
@@ -491,100 +391,27 @@ window.__ModuleLoader__.load({
         function refreshLauncher() {
           postJSON('/boot-auth/launcher', { action: 'status' })
             .then(function (out) { paintLauncher(out.data) })
-            .catch(function () { if (lState) lState.textContent = '读不到状态' })
+            .catch(function () { if (lState) lState.textContent = '启动方式：读不到状态' })
         }
 
         if (lGo) {
           lGo.addEventListener('click', function () {
             lGo.disabled = true
-            if (lState) lState.textContent = launcherInstalled ? '正在卸载…' : '正在创建快捷方式…'
+            if (lState) lState.textContent = '启动方式：' + (launcherInstalled ? '正在卸载…' : '正在创建快捷方式…')
             postJSON('/boot-auth/launcher', { action: launcherInstalled ? 'uninstall' : 'install' })
               .then(function (out) { paintLauncher(out.data) })
-              .catch(function () { if (lState) lState.textContent = '宿主没有响应' })
+              .catch(function () { if (lState) lState.textContent = '启动方式：宿主没有响应' })
           })
         }
-
-        // 悬停/点一下出一个两项菜单：这块面板现在管两件事，入口名字也得对应。
-        var menu = document.createElement('div')
-        menu.id = 'bh-menu'
-        menu.innerHTML =
-          '<button type="button" data-what="login">' + LABELS.menuLogin + '</button>' +
-          '<button type="button" data-what="launcher">' + LABELS.menuLauncher + '</button>'
-        document.documentElement.appendChild(menu)
-
-        var title = panel.querySelector('#bh-m-title')
-        var secLogin = panel.querySelector('#bh-sec-login')
-        var secLauncher = panel.querySelector('#bh-sec-launcher')
-
-        function showSection(what) {
-          var isLogin = what === 'login'
-          if (secLogin) secLogin.style.display = isLogin ? 'block' : 'none'
-          if (secLauncher) secLauncher.style.display = isLogin ? 'none' : 'block'
-          if (title) title.textContent = isLogin ? LABELS.changePinTitle : LABELS.launcherTitle
-          panel.style.display = 'block'
-          if (!isLogin && typeof refreshLauncher === 'function') refreshLauncher()
-        }
-
-        function placeMenu() {
-          var r = trigger.getBoundingClientRect()
-          menu.style.display = 'block'
-          var left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))
-          var top = r.top - menu.offsetHeight - 8
-          if (top < 8) top = r.bottom + 8
-          menu.style.left = left + 'px'
-          menu.style.top = top + 'px'
-        }
-
-        function hideMenu() { menu.style.display = 'none' }
-
-        trigger.addEventListener('mouseenter', placeMenu)
-        trigger.addEventListener('mouseleave', function () {
-          setTimeout(function () {
-            if (!menu.matches(':hover')) hideMenu()
-          }, 160)
-        })
-        trigger.addEventListener('focus', placeMenu)
-        trigger.addEventListener('click', function (e) {
-          e.stopPropagation()
-          if (menu.style.display === 'block') { hideMenu(); return }
-          placeMenu()
-          // 菜单万一没排上（样式被别的东西覆盖、或者容器不允许），别让入口变成死的。
-          if (!menu.offsetHeight) { hideMenu(); showSection('login') }
-        })
-        menu.addEventListener('mouseleave', hideMenu)
-        menu.querySelectorAll('button').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            hideMenu()
-            var what = btn.getAttribute('data-what')
-            try { console.debug('[boot-handmade] entry section', what) } catch (e) {}
-            showSection(what)
-          })
-        })
-        document.addEventListener('click', function (e) {
-          if (e.target !== trigger && !menu.contains(e.target)) hideMenu()
-        })
-
-        // 悬停/聚焦时把完整说法浮出来；离开就收起。
-        var tip = document.createElement('div')
-        tip.id = 'bh-chip-tip'
-        tip.textContent = LABELS.changePinFull
-        document.documentElement.appendChild(tip)
-        function showTip() {
-          var r = trigger.getBoundingClientRect()
-          tip.style.display = 'block'
-          tip.style.left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 8)) + 'px'
-          tip.style.top = Math.max(8, r.top - tip.offsetHeight - 8) + 'px'
-        }
-        function hideTip() { tip.style.display = 'none' }
-        trigger.addEventListener('mouseenter', showTip)
-        trigger.addEventListener('mouseleave', hideTip)
-        trigger.addEventListener('focus', showTip)
-        trigger.addEventListener('blur', hideTip)
 
         var msg = panel.querySelector('#bh-m-msg')
         function say(text) { if (msg) msg.textContent = text }
 
-
+        fab.addEventListener('click', function () {
+          var showing = panel.style.display !== 'block'
+          panel.style.display = showing ? 'block' : 'none'
+          if (showing) refreshLauncher()
+        })
         panel.querySelector('.bh-manage-close').addEventListener('click', function () {
           panel.style.display = 'none'
         })
@@ -608,21 +435,6 @@ window.__ModuleLoader__.load({
             })
             .catch(function () { say('宿主没有响应') })
         })
-
-        // 复查：被别的插件挤掉、或者节点被移除，就重新挂（会自动挑位置）。
-        var checks = 0
-        var guard = setInterval(function () {
-          checks += 1
-          var alive = document.body.contains(trigger) || document.documentElement.contains(trigger)
-          if (trigger.id === 'bh-chip' && alive && collidesWithSiblings(trigger)) {
-            trigger.remove()
-            panel.remove()
-            clearInterval(guard)
-            mountInAppEntry()
-            return
-          }
-          if (checks >= 10) clearInterval(guard)
-        }, 2000)
       }
 
       function finish() {
@@ -728,6 +540,7 @@ window.__ModuleLoader__.load({
               var go = $('bh-go')
               var hello = $('bh-hello')
               var errBox = $('bh-auth-err')
+              var altNote = $('bh-alt-note')
               var direct = $('bh-direct')
               if (!box) return resolve('no-ui')
               // Escape hatch #1: the host-side flag file says the lock is off.
@@ -743,7 +556,7 @@ window.__ModuleLoader__.load({
                 altNote.textContent = '宿主未连接'
                 hello.style.display = 'none'
               } else if (setup) {
-                hint.textContent = '首次启动 · 设置登录密码（4-8 位数字）'
+                hint.textContent = '首次启动 · 设置访问 PIN（4-8 位数字）'
                 hello.style.display = 'none'
               } else if (status.hello === 'unavailable') {
                 hello.style.display = 'none'
