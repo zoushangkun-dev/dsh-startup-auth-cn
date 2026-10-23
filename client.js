@@ -266,6 +266,7 @@ window.__ModuleLoader__.load({
     }
 
     function mount() {
+      // Already mounted (HMR reload or a second apply): keep the one overlay.
       if (document.getElementById(ROOT_ID)) return
       var style = document.createElement('style')
       style.id = 'boot-hm-style'
@@ -726,31 +727,39 @@ window.__ModuleLoader__.load({
 
       async function run() {
         counter()
-        await wait(2300)
+        // The click must be acknowledged fast. Waiting 4.5 s in silence is what
+        // makes people think the launch failed and click again (which starts
+        // more processes). The gate is usable after ~1 s; the decorative beats
+        // play *behind* it instead of blocking it.
+        await wait(360)
         setScene('sb')
         $('bh-wash').classList.add('go')
-        await wait(760)
+        await wait(420)
         setScene('sc')
         sound.tick()
 
         ring(18)
         var zh = $('bh-zh'), en = $('bh-en'), note = $('bh-note'), st = $('bh-status')
         if (st) st.textContent = '01 / 08 | ACCESS'
-        await wait(420)
-        await typeInto(en, 'ACCESS PERMISSION REQUIRED', 34)
-        if (note) note.textContent = '读取访问需求，建立可信通道。'
-        ring(34)
-        await wait(200)
+
+        // Do not await: this is decoration, the gate does not depend on it.
+        var dressing = typeInto(en, 'ACCESS PERMISSION REQUIRED', 18)
+          .then(function () {
+            if (note) note.textContent = '读取访问需求，建立可信通道。'
+            ring(34)
+          })
+          .catch(function () {})
 
         st.textContent = '02 / 08 | GRANT'
         await authGate()
+        await dressing
 
         zh.textContent = '身份资料确认'
         en.textContent = 'IDENTITY VERIFICATION'
         if (note) note.textContent = '核验操作者身份与权限等级。'
         ring(58)
         st.textContent = '05 / 08 | IDENTITY'
-        await typeInto(en, 'IDENTITY VERIFICATION', 26)
+        await typeInto(en, 'IDENTITY VERIFICATION', 14)
         await addRow('身份名称  OPERATOR')
         await addRow('证件编号  DSH-0027-6.0.16')
         await addRow('权限等级  LEVEL-3 · 已授权')
@@ -760,7 +769,7 @@ window.__ModuleLoader__.load({
         if (note) note.textContent = '权限已授予，正在进入工作区。'
         ring(100)
         st.textContent = '08 / 08 | VERIFY'
-        await wait(420)
+        await wait(220)
         // Calm hand-off: the old chromatic glitch strobed six times at 90 ms and
         // read as a disco light. A short, quiet pause instead.
         sound.tick()
