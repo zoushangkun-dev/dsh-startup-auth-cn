@@ -292,9 +292,11 @@ window.__ModuleLoader__.load({
       // 所有面向人的短文案集中在这里：以后加语言只改这一段。
       // 短标签必须一眼能懂，长解释放在悬停提示里。
       var LABELS = {
-        changePin: '更改登录密码',
-        changePinFull: '更改登录时的 PIN',
+        chip: '更改登录细节',
+        menuLogin: '更改登录',
+        menuLauncher: '更改启动方式',
         changePinTitle: '更改登录 PIN',
+        launcherTitle: '启动方式（可选）',
         saved: '已更新，下次开门用新 PIN。',
       }
 
@@ -396,6 +398,13 @@ window.__ModuleLoader__.load({
           '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
           '#bh-manage .sc-btn{width:100%}',
           '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
+          '#bh-menu{position:fixed;z-index:2147482002;display:none;min-width:150px;padding:6px;',
+          'border:1px solid #3a3a46;border-radius:8px;background:#14141a;',
+          'box-shadow:0 10px 30px rgba(0,0,0,.55)}',
+          '#bh-menu button{display:block;width:100%;text-align:left;padding:7px 10px;border:0;',
+          'border-radius:5px;background:transparent;color:#c9c3b8;font-size:12px;cursor:pointer}',
+          '#bh-menu button:hover{background:#232330;color:#f3eee4}',
+
         ].join('')
         document.head.appendChild(own)
       }
@@ -408,7 +417,8 @@ window.__ModuleLoader__.load({
         panel.id = 'bh-manage'
         panel.innerHTML =
           '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
-          '<h4>' + LABELS.changePinTitle + '</h4>' +
+          '<h4 id="bh-m-title">' + LABELS.changePinTitle + '</h4>' +
+          '<div class="bh-sec" id="bh-sec-login">' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password"' +
           ' inputmode="numeric" maxlength="8" placeholder="当前 PIN" /></div>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password"' +
@@ -417,13 +427,14 @@ window.__ModuleLoader__.load({
           ' inputmode="numeric" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
           '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>' +
-          '<div class="bh-manage-sep"></div>' +
-          '<h4>启动方式（可选）</h4>' +
+          '</div>' +
+          '<div class="bh-sec" id="bh-sec-launcher" style="display:none">' +
           '<div class="bh-manage-note" id="bh-l-state">正在检查…</div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-l-go" type="button">'
           + '启用桌面启动器</button></div>' +
           '<div class="bh-manage-note">只在点下去那一刻给反馈，避免连点；'
-          + '原来的快捷方式保留，不满意随时卸掉。</div>'
+          + '原来的快捷方式保留，不满意随时卸掉。</div>' +
+          '</div>'
         document.documentElement.appendChild(panel)
 
         // 先试标题栏，撞了就退到角落。
@@ -433,9 +444,9 @@ window.__ModuleLoader__.load({
           var chip = document.createElement('button')
           chip.id = 'bh-chip'
           chip.type = 'button'
-          chip.title = LABELS.changePinFull
-          chip.setAttribute('aria-label', LABELS.changePinFull)
-          chip.textContent = LABELS.changePin
+          chip.title = LABELS.chip
+          chip.setAttribute('aria-label', LABELS.chip + '：' + LABELS.menuLogin + ' / ' + LABELS.menuLauncher)
+          chip.textContent = LABELS.chip
           anchor.appendChild(chip)
           if (collidesWithSiblings(chip)) {
             chip.remove()
@@ -448,8 +459,8 @@ window.__ModuleLoader__.load({
           var fab = document.createElement('button')
           fab.id = 'bh-fab'
           fab.type = 'button'
-          fab.title = LABELS.changePinFull
-          fab.setAttribute('aria-label', LABELS.changePinFull)
+          fab.title = LABELS.chip
+          fab.setAttribute('aria-label', LABELS.chip)
           fab.textContent = '⚿'
           document.documentElement.appendChild(fab)
           trigger = fab
@@ -492,6 +503,62 @@ window.__ModuleLoader__.load({
           })
         }
 
+        // 悬停/点一下出一个两项菜单：这块面板现在管两件事，入口名字也得对应。
+        var menu = document.createElement('div')
+        menu.id = 'bh-menu'
+        menu.innerHTML =
+          '<button type="button" data-what="login">' + LABELS.menuLogin + '</button>' +
+          '<button type="button" data-what="launcher">' + LABELS.menuLauncher + '</button>'
+        document.documentElement.appendChild(menu)
+
+        var title = panel.querySelector('#bh-m-title')
+        var secLogin = panel.querySelector('#bh-sec-login')
+        var secLauncher = panel.querySelector('#bh-sec-launcher')
+
+        function showSection(what) {
+          var isLogin = what === 'login'
+          if (secLogin) secLogin.style.display = isLogin ? 'block' : 'none'
+          if (secLauncher) secLauncher.style.display = isLogin ? 'none' : 'block'
+          if (title) title.textContent = isLogin ? LABELS.changePinTitle : LABELS.launcherTitle
+          panel.style.display = 'block'
+          if (!isLogin && typeof refreshLauncher === 'function') refreshLauncher()
+        }
+
+        function placeMenu() {
+          var r = trigger.getBoundingClientRect()
+          menu.style.display = 'block'
+          var left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))
+          var top = r.top - menu.offsetHeight - 8
+          if (top < 8) top = r.bottom + 8
+          menu.style.left = left + 'px'
+          menu.style.top = top + 'px'
+        }
+
+        function hideMenu() { menu.style.display = 'none' }
+
+        trigger.addEventListener('mouseenter', placeMenu)
+        trigger.addEventListener('mouseleave', function () {
+          setTimeout(function () {
+            if (!menu.matches(':hover')) hideMenu()
+          }, 160)
+        })
+        trigger.addEventListener('focus', placeMenu)
+        trigger.addEventListener('click', function (e) {
+          e.stopPropagation()
+          if (menu.style.display === 'block') hideMenu()
+          else placeMenu()
+        })
+        menu.addEventListener('mouseleave', hideMenu)
+        menu.querySelectorAll('button').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            hideMenu()
+            showSection(btn.getAttribute('data-what'))
+          })
+        })
+        document.addEventListener('click', function (e) {
+          if (e.target !== trigger && !menu.contains(e.target)) hideMenu()
+        })
+
         // 悬停/聚焦时把完整说法浮出来；离开就收起。
         var tip = document.createElement('div')
         tip.id = 'bh-chip-tip'
@@ -512,11 +579,7 @@ window.__ModuleLoader__.load({
         var msg = panel.querySelector('#bh-m-msg')
         function say(text) { if (msg) msg.textContent = text }
 
-        trigger.addEventListener('click', function () {
-          var showing = panel.style.display !== 'block'
-          panel.style.display = showing ? 'block' : 'none'
-          if (showing) refreshLauncher()
-        })
+
         panel.querySelector('.bh-manage-close').addEventListener('click', function () {
           panel.style.display = 'none'
         })
