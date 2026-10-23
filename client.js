@@ -311,42 +311,97 @@ window.__ModuleLoader__.load({
         try { console.debug('[boot-handmade]', stage, Math.round(performance.now()) + 'ms') } catch (e) {}
       }
 
-      // 门一关，门里的「修改 PIN」就找不到了。这里留一个常驻的小入口，
-      // 进了应用也随时能改；点开只是一个小面板，不进第二次验证。
-      function mountInAppEntry() {
-        if (document.getElementById('bh-fab')) return
+      // 门一关，门里的「修改 PIN」就找不到了。这个入口优先挂到应用自己的
+      // 标题栏 / 已登录账号旁边，而不是浮在角落；那里最容易找。
+      //
+      // 但别的插件也会往同一处塞东西，所以这里有一层识别：插入后量一遍矩形，
+      // 和兄弟节点重叠就撤掉、退回角落里的浮标。之后仍有几次复查，因为别的
+      // 插件可能是稍后才注入的。
+      function overlapsRects(a, b) {
+        return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom)
+      }
 
-        // finish() removes the gate stylesheet, so this entry carries its own.
-        if (!document.getElementById('bh-fab-style')) {
-          var own = document.createElement('style')
-          own.id = 'bh-fab-style'
-          own.textContent = [
-            '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
-            'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
-            'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
-            'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
-            '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
-            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147482001;width:320px;',
-            'display:none;padding:16px;border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
-            'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
-            '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
-            '#bh-manage .bh-manage-row{margin-bottom:8px}',
-            '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
-            '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
-            'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
-            '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
-            '#bh-manage .sc-btn{width:100%}',
-          ].join('')
-          document.head.appendChild(own)
+      function collidesWithSiblings(node) {
+        var r = node.getBoundingClientRect()
+        if (!r.width || !r.height) return true
+        var parent = node.parentElement
+        if (!parent) return true
+        for (var i = 0; i < parent.children.length; i += 1) {
+          var sib = parent.children[i]
+          if (sib === node) continue
+          var sr = sib.getBoundingClientRect()
+          if (!sr.width || !sr.height) continue
+          if (overlapsRects(r, sr)) return true
         }
+        return false
+      }
 
-        var fab = document.createElement('button')
-        fab.id = 'bh-fab'
-        fab.type = 'button'
-        fab.title = '开机门 · 修改访问 PIN'
-        fab.setAttribute('aria-label', '开机门设置')
-        fab.textContent = '⚿'
-        document.documentElement.appendChild(fab)
+      // 锚点优先找左下角那块「已登录 DeepSeek」：叶子节点里带「已登录」的，
+      // 它的父节点就是那一行。找不到再退回头像 / 侧栏 / 标题栏。
+      function findAccountAnchor() {
+        var all = document.querySelectorAll('span,div,p,a,button')
+        for (var i = 0; i < all.length; i += 1) {
+          var el = all[i]
+          if (el.children && el.children.length) continue      // 只要叶子
+          var txt = (el.textContent || '').trim()
+          if (txt.length && txt.length < 40 && txt.indexOf('已登录') !== -1) {
+            if (el.parentElement && el.parentElement !== document.body) return el.parentElement
+          }
+        }
+        var probes = [
+          '[data-testid="account"]', '[data-testid="user-menu"]',
+          '[aria-label*="账号"]', '[aria-label*="帐号"]', '[aria-label*="account" i]',
+          '[class*="avatar"]', '[class*="account"]', '[class*="user-"]',
+        ]
+        for (var j = 0; j < probes.length; j += 1) {
+          var hit = document.querySelector(probes[j])
+          if (hit && hit.parentElement && hit.parentElement !== document.body) {
+            return hit.parentElement
+          }
+        }
+        var sidebar = document.querySelector('[class*="sidebar"], [class*="sider"]')
+        if (sidebar) {
+          var foot = sidebar.querySelector('footer, [class*="footer"], [class*="bottom"]')
+          if (foot) return foot
+          return sidebar
+        }
+        var header = document.querySelector('header, [class*="titlebar"]')
+        return header || null
+      }
+
+      function ensureEntryStyles() {
+        if (document.getElementById('bh-fab-style')) return
+        var own = document.createElement('style')
+        own.id = 'bh-fab-style'
+        own.textContent = [
+          '#bh-chip{height:24px;padding:0 9px;margin-left:6px;border:1px solid #3a3a46;border-radius:12px;',
+          'background:transparent;color:#8d887e;font-size:11px;letter-spacing:.08em;cursor:pointer;',
+          'transition:border-color .18s ease,color .18s ease;white-space:nowrap}',
+          '#bh-chip:hover{border-color:#ff5a1f;color:#ff5a1f}',
+          '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
+          'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
+          'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
+          'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
+          '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
+          '#bh-manage{position:fixed;right:20px;z-index:2147482001;width:320px;display:none;padding:16px;',
+          'border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
+          'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
+          '#bh-manage.in-footer{left:16px;bottom:120px}',
+          '#bh-manage.in-corner{bottom:76px}',
+          '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
+          '#bh-manage .bh-manage-row{margin-bottom:8px}',
+          '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
+          '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
+          'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
+          '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
+          '#bh-manage .sc-btn{width:100%}',
+        ].join('')
+        document.head.appendChild(own)
+      }
+
+      function mountInAppEntry() {
+        if (document.getElementById('bh-fab') || document.getElementById('bh-chip')) return
+        ensureEntryStyles()
 
         var panel = document.createElement('div')
         panel.id = 'bh-manage'
@@ -363,10 +418,40 @@ window.__ModuleLoader__.load({
           '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>'
         document.documentElement.appendChild(panel)
 
+        // 先试标题栏，撞了就退到角落。
+        var trigger = null
+        var anchor = findAccountAnchor()
+        if (anchor) {
+          var chip = document.createElement('button')
+          chip.id = 'bh-chip'
+          chip.type = 'button'
+          chip.title = '开机门 · 修改访问 PIN'
+          chip.setAttribute('aria-label', '开机门 · 修改访问 PIN')
+          chip.textContent = '访问 PIN'
+          anchor.appendChild(chip)
+          if (collidesWithSiblings(chip)) {
+            chip.remove()
+          } else {
+            trigger = chip
+            panel.classList.add('in-footer')
+          }
+        }
+        if (!trigger) {
+          var fab = document.createElement('button')
+          fab.id = 'bh-fab'
+          fab.type = 'button'
+          fab.title = '开机门 · 修改访问 PIN'
+          fab.setAttribute('aria-label', '开机门 · 修改访问 PIN')
+          fab.textContent = '⚿'
+          document.documentElement.appendChild(fab)
+          trigger = fab
+          panel.classList.add('in-corner')
+        }
+
         var msg = panel.querySelector('#bh-m-msg')
         function say(text) { if (msg) msg.textContent = text }
 
-        fab.addEventListener('click', function () {
+        trigger.addEventListener('click', function () {
           panel.style.display = panel.style.display === 'block' ? 'none' : 'block'
         })
         panel.querySelector('.bh-manage-close').addEventListener('click', function () {
@@ -392,6 +477,21 @@ window.__ModuleLoader__.load({
             })
             .catch(function () { say('宿主没有响应') })
         })
+
+        // 复查：被别的插件挤掉、或者节点被移除，就重新挂（会自动挑位置）。
+        var checks = 0
+        var guard = setInterval(function () {
+          checks += 1
+          var alive = document.body.contains(trigger) || document.documentElement.contains(trigger)
+          if (trigger.id === 'bh-chip' && alive && collidesWithSiblings(trigger)) {
+            trigger.remove()
+            panel.remove()
+            clearInterval(guard)
+            mountInAppEntry()
+            return
+          }
+          if (checks >= 10) clearInterval(guard)
+        }, 2000)
       }
 
       function finish() {
