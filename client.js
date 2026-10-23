@@ -395,6 +395,7 @@ window.__ModuleLoader__.load({
           'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
           '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
           '#bh-manage .sc-btn{width:100%}',
+          '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
         ].join('')
         document.head.appendChild(own)
       }
@@ -415,7 +416,14 @@ window.__ModuleLoader__.load({
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password"' +
           ' inputmode="numeric" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
-          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>'
+          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>' +
+          '<div class="bh-manage-sep"></div>' +
+          '<h4>启动方式（可选）</h4>' +
+          '<div class="bh-manage-note" id="bh-l-state">正在检查…</div>' +
+          '<div class="bh-manage-row"><button class="sc-btn" id="bh-l-go" type="button">'
+          + '启用桌面启动器</button></div>' +
+          '<div class="bh-manage-note">只在点下去那一刻给反馈，避免连点；'
+          + '原来的快捷方式保留，不满意随时卸掉。</div>'
         document.documentElement.appendChild(panel)
 
         // 先试标题栏，撞了就退到角落。
@@ -448,6 +456,42 @@ window.__ModuleLoader__.load({
           panel.classList.add('in-corner')
         }
 
+        // 启动器是选装件：这里只查状态和装/卸，默认不动系统。
+        var lState = panel.querySelector('#bh-l-state')
+        var lGo = panel.querySelector('#bh-l-go')
+        var launcherInstalled = false
+
+        function paintLauncher(status) {
+          launcherInstalled = !!(status && status.installed)
+          if (!lState || !lGo) return
+          if (status && status.available === false) {
+            lState.textContent = '这个版本里没有启动器文件'
+            lGo.disabled = true
+            return
+          }
+          lState.textContent = launcherInstalled
+            ? '已启用：桌面上有「DeepSeek Harness (Launcher)」'
+            : '未启用（不影响使用，原来的快捷方式照旧）'
+          lGo.textContent = launcherInstalled ? '卸载启动器' : '启用桌面启动器'
+          lGo.disabled = false
+        }
+
+        function refreshLauncher() {
+          postJSON('/boot-auth/launcher', { action: 'status' })
+            .then(function (out) { paintLauncher(out.data) })
+            .catch(function () { if (lState) lState.textContent = '读不到状态' })
+        }
+
+        if (lGo) {
+          lGo.addEventListener('click', function () {
+            lGo.disabled = true
+            if (lState) lState.textContent = launcherInstalled ? '正在卸载…' : '正在创建快捷方式…'
+            postJSON('/boot-auth/launcher', { action: launcherInstalled ? 'uninstall' : 'install' })
+              .then(function (out) { paintLauncher(out.data) })
+              .catch(function () { if (lState) lState.textContent = '宿主没有响应' })
+          })
+        }
+
         // 悬停/聚焦时把完整说法浮出来；离开就收起。
         var tip = document.createElement('div')
         tip.id = 'bh-chip-tip'
@@ -469,7 +513,9 @@ window.__ModuleLoader__.load({
         function say(text) { if (msg) msg.textContent = text }
 
         trigger.addEventListener('click', function () {
-          panel.style.display = panel.style.display === 'block' ? 'none' : 'block'
+          var showing = panel.style.display !== 'block'
+          panel.style.display = showing ? 'block' : 'none'
+          if (showing) refreshLauncher()
         })
         panel.querySelector('.bh-manage-close').addEventListener('click', function () {
           panel.style.display = 'none'
