@@ -311,6 +311,89 @@ window.__ModuleLoader__.load({
         try { console.debug('[boot-handmade]', stage, Math.round(performance.now()) + 'ms') } catch (e) {}
       }
 
+      // 门一关，门里的「修改 PIN」就找不到了。这里留一个常驻的小入口，
+      // 进了应用也随时能改；点开只是一个小面板，不进第二次验证。
+      function mountInAppEntry() {
+        if (document.getElementById('bh-fab')) return
+
+        // finish() removes the gate stylesheet, so this entry carries its own.
+        if (!document.getElementById('bh-fab-style')) {
+          var own = document.createElement('style')
+          own.id = 'bh-fab-style'
+          own.textContent = [
+            '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
+            'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
+            'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
+            'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
+            '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
+            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147482001;width:320px;',
+            'display:none;padding:16px;border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
+            'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
+            '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
+            '#bh-manage .bh-manage-row{margin-bottom:8px}',
+            '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.6;margin-top:8px}',
+            '#bh-manage .bh-manage-close{position:absolute;top:8px;right:10px;border:0;',
+            'background:transparent;color:#8d887e;font-size:15px;cursor:pointer}',
+            '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
+            '#bh-manage .sc-btn{width:100%}',
+          ].join('')
+          document.head.appendChild(own)
+        }
+
+        var fab = document.createElement('button')
+        fab.id = 'bh-fab'
+        fab.type = 'button'
+        fab.title = '开机门 · 修改访问 PIN'
+        fab.setAttribute('aria-label', '开机门设置')
+        fab.textContent = '⚿'
+        document.documentElement.appendChild(fab)
+
+        var panel = document.createElement('div')
+        panel.id = 'bh-manage'
+        panel.innerHTML =
+          '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
+          '<h4>修改访问 PIN</h4>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password"' +
+          ' inputmode="numeric" maxlength="8" placeholder="当前 PIN" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password"' +
+          ' inputmode="numeric" maxlength="8" placeholder="新 PIN（4-8 位数字）" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password"' +
+          ' inputmode="numeric" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
+          '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
+          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>'
+        document.documentElement.appendChild(panel)
+
+        var msg = panel.querySelector('#bh-m-msg')
+        function say(text) { if (msg) msg.textContent = text }
+
+        fab.addEventListener('click', function () {
+          panel.style.display = panel.style.display === 'block' ? 'none' : 'block'
+        })
+        panel.querySelector('.bh-manage-close').addEventListener('click', function () {
+          panel.style.display = 'none'
+        })
+        panel.querySelector('#bh-m-go').addEventListener('click', function () {
+          var cur = String(panel.querySelector('#bh-m-current').value || '').trim()
+          var next = String(panel.querySelector('#bh-m-next').value || '').trim()
+          var confirm = String(panel.querySelector('#bh-m-confirm').value || '').trim()
+          if (!/^\d{4,8}$/.test(next)) return say('新 PIN 需要 4-8 位数字')
+          if (next !== confirm) return say('两次输入不一致')
+          say('正在保存…')
+          postJSON('/boot-auth/pin/change', { current: cur, next: next, confirm: confirm })
+            .then(function (out) {
+              var data = out.data || {}
+              if (out.status === 200) {
+                panel.querySelector('#bh-m-current').value = ''
+                panel.querySelector('#bh-m-next').value = ''
+                panel.querySelector('#bh-m-confirm').value = ''
+                return say('已更新，下次开门用新 PIN。')
+              }
+              say(data.error || ('保存失败（HTTP ' + out.status + '）'))
+            })
+            .catch(function () { say('宿主没有响应') })
+        })
+      }
+
       function finish() {
         if (finished) return
         finished = true
@@ -322,6 +405,8 @@ window.__ModuleLoader__.load({
           try { root.remove() } catch (e) {}
           try { style.remove() } catch (e) {}
         }, 700)
+        // 门的样式被移除了，常驻入口要自己带一份。
+        try { mountInAppEntry() } catch (e) {}
       }
 
       // No auto-dismiss: a gate that removes itself after 90 seconds is just
