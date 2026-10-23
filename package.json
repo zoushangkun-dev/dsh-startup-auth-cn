@@ -1,7 +1,7 @@
 {
   "name": "dsh-boot-handmade",
-  "version": "0.1.0",
-  "description": "Hand-built cold-start animation for DeepSeek Harness: black screen logo -> overexposed wash -> warm technical archive -> interactive access gate -> chromatic glitch reveal -> chat",
+  "version": "0.3.0",
+  "description": "Hand-built cold-start gate for DeepSeek Harness: six-act boot animation, PIN + Windows Hello + authenticator-code unlock, local-only and dependency-free",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -23,5 +23,17 @@
       "immediately": true
     }
   },
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "boot-animation",
+    "app-lock",
+    "totp",
+    "windows-hello"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OWNER/dsh-boot-handmade.git"
+  }
 }
