@@ -34,6 +34,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/OWNER/dsh-boot-handmade.git"
+    "url": "https://github.com/zoushangkun-dev/dsh-startup-auth-cn.git"
+  },
+  "homepage": "https://github.com/zoushangkun-dev/dsh-startup-auth-cn#readme",
+  "bugs": {
+    "url": "https://github.com/zoushangkun-dev/dsh-startup-auth-cn/issues"
   }
 }

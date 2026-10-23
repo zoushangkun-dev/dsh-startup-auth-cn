@@ -1,5 +1,7 @@
 # dsh-boot-handmade
 
+> 仓库名：`dsh-startup-auth-cn` · 包名：`dsh-boot-handmade`（两者故意不同，包名是装进 profile 的标识）
+
 > 给 DeepSeek Harness 手搓的开机门：六幕冷启动动画，加上一把真正拦得住人的锁。
 > **纯前端 + 本地宿主半，零依赖、零联网、零第三方服务。**
 
@@ -28,7 +30,7 @@ DeepSeek Harness 启动时先播一段六幕的开机动画（黑屏描边 → �
 
 ```powershell
 # 1. 克隆到任意目录
-git clone https://github.com/OWNER/dsh-boot-handmade.git
+git clone https://github.com/zoushangkun-dev/dsh-startup-auth-cn.git
 
 # 2. 装进 desktop profile（link 方式，改代码即时生效）
 & "D:\dsh\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add "link:<克隆到的路径>"
