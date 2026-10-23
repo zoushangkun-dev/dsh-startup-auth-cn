@@ -56,7 +56,7 @@ window.__ModuleLoader__.load({
 
       '.sb-wash{position:absolute;inset:0;background:#f6f1e7;opacity:0;pointer-events:none}',
       '.sb-wash.go{animation:bh-wash 1.05s cubic-bezier(.4,0,.2,1) forwards}',
-      '@keyframes bh-wash{0%{opacity:0}38%{opacity:1}52%{opacity:1}100%{opacity:0}}',
+      '@keyframes bh-wash{0%{opacity:0}40%{opacity:.55}56%{opacity:.55}100%{opacity:0}}',
 
       '.sc{background:#f3eee4;color:#14141a}',
       '.sc::before{content:\'\';position:absolute;inset:0;pointer-events:none;',
@@ -129,12 +129,8 @@ window.__ModuleLoader__.load({
       '.bh-shake{animation:bh-shake .34s ease}',
       '@keyframes bh-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}',
       '50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}',
-      '.bh-glitch .sc-zh{animation:bh-aberr 90ms steps(2,end) 6}',
-      '.bh-glitch .sc-frame{animation:bh-tear .42s steps(3,end) 2}',
-      '@keyframes bh-aberr{0%{text-shadow:2px 0 #ff2d55,-2px 0 #00e0ff}',
       '50%{text-shadow:-3px 0 #ff2d55,3px 0 #00e0ff;transform:translateX(2px)}',
       '100%{text-shadow:0 0 transparent;transform:none}}',
-      '@keyframes bh-tear{0%{clip-path:inset(0 0 92% 0)}50%{clip-path:inset(38% 0 42% 0)}',
       '100%{clip-path:inset(0 0 0 0)}}'
     ].join('')
 
@@ -765,10 +761,10 @@ window.__ModuleLoader__.load({
         ring(100)
         st.textContent = '08 / 08 | VERIFY'
         await wait(420)
-        root.classList.add('bh-glitch')
+        // Calm hand-off: the old chromatic glitch strobed six times at 90 ms and
+        // read as a disco light. A short, quiet pause instead.
         sound.tick()
-        await wait(520)
-        root.classList.remove('bh-glitch')
+        await wait(320)
 
         await wait(320)
         finish()
