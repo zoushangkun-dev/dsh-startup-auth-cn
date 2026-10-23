@@ -18,7 +18,7 @@ window.__ModuleLoader__.load({
     var ROOT_ID = 'boot-hm-root'
 
     var CSS = [
-      '#boot-hm-root{position:fixed;inset:0;z-index:2147483000;overflow:hidden;',
+      '#boot-hm-root{position:fixed;inset:0;z-index:2147483640;overflow:hidden;isolation:isolate;',
       'background:#08080a;color:#f3eee4;',
       "font-family:'Microsoft YaHei','PingFang SC','Noto Sans SC',system-ui,sans-serif;",
       'opacity:1;transition:opacity .6s ease;contain:strict}',
@@ -321,12 +321,12 @@ window.__ModuleLoader__.load({
           var own = document.createElement('style')
           own.id = 'bh-fab-style'
           own.textContent = [
-            '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147482000;width:44px;height:44px;',
+            '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147483645;pointer-events:auto;width:44px;height:44px;',
             'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
             'font-size:19px;line-height:42px;text-align:center;cursor:pointer;opacity:.55;',
             'transition:opacity .18s ease,border-color .18s ease,color .18s ease}',
             '#bh-fab:hover{opacity:1;border-color:#ff5a1f;color:#ff5a1f}',
-            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147482001;width:320px;',
+            '#bh-manage{position:fixed;right:20px;bottom:76px;z-index:2147483646;pointer-events:auto;width:320px;',
             'display:none;padding:16px;border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
             'box-shadow:0 12px 40px rgba(0,0,0,.55)}',
             '#bh-manage h4{margin:0 0 10px;font-size:13px;letter-spacing:.12em;color:#f3eee4}',
@@ -348,6 +348,24 @@ window.__ModuleLoader__.load({
         fab.setAttribute('aria-label', '更改登录细节')
         fab.textContent = '⚿'
         document.documentElement.appendChild(fab)
+
+        // 其他插件也会往右下角塞东西。z-index 已经顶到天花板，剩下的变量是
+        // DOM 顺序：同一层级里后出现的赢。所以先量一次，挡住就把自己挪到末尾；
+        // 还被挡就往上让一格，保证始终点得到。
+        function ensureClickable() {
+          try {
+            var r = fab.getBoundingClientRect()
+            var hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+            if (hit === fab || fab.contains(hit)) return true
+            document.documentElement.appendChild(fab)      // 重新排到最后
+            var again = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+            if (again === fab || fab.contains(again)) return true
+            fab.style.bottom = '92px'                      // 让位，仍然看得见
+            console.debug('[boot-handmade] entry was covered by', again && (again.id || again.className || again.tagName))
+            return false
+          } catch (e) { return true }
+        }
+        setTimeout(ensureClickable, 400)
 
         var panel = document.createElement('div')
         panel.id = 'bh-manage'
