@@ -436,6 +436,7 @@ window.__ModuleLoader__.load({
           + '原来的快捷方式保留，不满意随时卸掉。</div>' +
           '</div>'
         document.documentElement.appendChild(panel)
+        try { console.debug('[boot-handmade] entry panel ready') } catch (e) {}
 
         // 先试标题栏，撞了就退到角落。
         var trigger = null
@@ -545,14 +546,18 @@ window.__ModuleLoader__.load({
         trigger.addEventListener('focus', placeMenu)
         trigger.addEventListener('click', function (e) {
           e.stopPropagation()
-          if (menu.style.display === 'block') hideMenu()
-          else placeMenu()
+          if (menu.style.display === 'block') { hideMenu(); return }
+          placeMenu()
+          // 菜单万一没排上（样式被别的东西覆盖、或者容器不允许），别让入口变成死的。
+          if (!menu.offsetHeight) { hideMenu(); showSection('login') }
         })
         menu.addEventListener('mouseleave', hideMenu)
         menu.querySelectorAll('button').forEach(function (btn) {
           btn.addEventListener('click', function () {
             hideMenu()
-            showSection(btn.getAttribute('data-what'))
+            var what = btn.getAttribute('data-what')
+            try { console.debug('[boot-handmade] entry section', what) } catch (e) {}
+            showSection(what)
           })
         })
         document.addEventListener('click', function (e) {
