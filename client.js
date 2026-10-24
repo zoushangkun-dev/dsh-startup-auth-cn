@@ -110,13 +110,15 @@ window.__ModuleLoader__.load({
       '.bh-row{opacity:0;transform:translateY(4px);transition:opacity .3s ease,transform .3s ease}',
       '.bh-row.on{opacity:1;transform:none}',
 
-      '.bh-auth{display:none;margin-top:22px;max-width:420px}',
+      '.bh-auth{display:none;margin-top:22px;max-width:468px}',
       '.bh-auth.on{display:block}',
       '.bh-auth-hint{font-size:11px;letter-spacing:.22em;color:#6c675e;margin-bottom:10px}',
       '.bh-auth-row{display:flex;gap:10px;align-items:stretch}',
       '.bh-pin{flex:1;min-width:0;border:1px solid rgba(20,20,26,.3);background:#fffdf8;',
-      'font-family:ui-monospace,Consolas,monospace;font-size:22px;letter-spacing:.5em;',
-      'padding:10px 14px;color:#14141a;outline:none}',
+      'font-family:ui-monospace,Consolas,monospace;font-size:20px;letter-spacing:.32em;',
+      'padding:10px 14px;color:#14141a;outline:none;',
+      // 有些宽度下 letter-spacing 会把末尾的点挤出可视区还不滚动，这里保证能滚
+      'overflow-x:auto;white-space:nowrap}',
       '.bh-pin:focus{border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,.16)}',
       '.bh-hello{margin-top:10px;width:100%;border:1px dashed rgba(20,20,26,.34);background:transparent;',
       'color:#14141a;padding:10px 14px;font-family:inherit;font-size:12px;letter-spacing:.18em;',
@@ -827,6 +829,15 @@ window.__ModuleLoader__.load({
               }
 
               go.addEventListener('click', function () { sound.click(); submit() })
+              // 位数直接写出来：就算点被挤出可视区，也能一眼看出输了几位。
+              var baseHint = '输入登录密码'
+              function paintCount() {
+                var n = String(input.value || '').length
+                hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' / 8') : baseHint
+              }
+              input.addEventListener('input', paintCount)
+              paintCount()
+
               input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') { e.preventDefault(); submit() }
               })
