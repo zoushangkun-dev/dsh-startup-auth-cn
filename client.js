@@ -1141,9 +1141,26 @@ window.__ModuleLoader__.load({
           })
       }
 
+      // 宿主的设置页里改了外观，这里要能读到：
+      // 门是每次启动重建的，所以每次开播前同步一次即可。
+      async function syncHostSettings() {
+        try {
+          var out = await Promise.race([
+            fetch('/boot-auth/settings', { credentials: 'same-origin' }),
+            new Promise(function (r) { setTimeout(function () { r(null) }, 800) }),
+          ])
+          if (!out || !out.ok) return
+          var data = await out.json()
+          if (data && (data.theme === 'auto' || data.theme === 'light' || data.theme === 'dark')) {
+            try { localStorage.setItem(BH_THEME_KEY, data.theme) } catch (e) {}
+          }
+        } catch (e) { /* 读不到就用本地记录，不影响开门 */ }
+      }
+
       async function run() {
         mark('run-start')
         counter()
+        await syncHostSettings()
         // The click must be acknowledged fast. Waiting 4.5 s in silence is what
         // makes people think the launch failed and click again (which starts
         // more processes). The gate is usable after ~1 s; the decorative beats

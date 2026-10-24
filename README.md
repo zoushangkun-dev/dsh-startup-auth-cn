@@ -476,3 +476,33 @@ function pinInfo(value) {
 
 验证覆盖 0 / 2 / 4 / 9 / 32 / 33 位六种情况，全部符合预期。
 要改范围（比如放宽到 64），只改 `PIN_MAX` 一处。
+
+## 设置条目进应用自己的设置页（0.4.11 起）
+
+用官方 API 注册，不往 React DOM 里塞东西：
+
+```js
+ctx.inject(['settings'], (sctx) => {
+  const scope = sctx.settings.register('boot-auth', Schema, {})
+  scope.watch(apply)   // 用户改了 → 写进 ~/.dsh/boot-settings.json
+})
+```
+
+条目会出现在 **设置 → 插件 → 插件配置 → boot-auth**，和 Vision Router、Cappuccin 并列。
+
+当前可配置项：
+
+| 项 | 类型 | 作用 |
+|---|---|---|
+| 外观 | auto / light / dark | 门的深浅色 |
+| 启动小窗 | 布尔 | 点启动器时是否显示进度小窗 |
+
+**更改登录 PIN 不在这里**：它需要“当前 / 新 / 确认 + 提交”的动作，配置表单表达不了，
+仍然在左侧栏的「⚙ 设置」里。
+
+### 为什么整段都有 try/catch
+
+插件是 link 安装的，`@deepseek-ai/schemastery` 不在自己目录里，裸 import 会
+`ERR_MODULE_NOT_FOUND`。所以：先常规 import，失败再从各 profile 的 `node_modules` 里找；
+任何一步失败都只打一行日志，**门本身完全不受影响**。已用假宿主验证过三种情况：
+正常注册、watch 生效、没有 settings 服务的宿主照常启动。
