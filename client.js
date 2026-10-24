@@ -113,7 +113,8 @@ window.__ModuleLoader__.load({
       '.bh-auth{display:none;margin-top:22px;max-width:468px}',
       // 输入框只负责接收键盘和焦点，画面上的点由我们自己画，不会被裁掉。
       '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
-      '.bh-dots-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}',
+      '.bh-dots-row{display:flex;align-items:center;gap:22px;margin-bottom:14px}',
+      '.bh-eye{margin-left:8px}',
       '.bh-dots{display:flex;gap:12px;align-items:center;height:34px}',
       '.bh-eye{border:1px solid rgba(20,20,26,.3);background:transparent;color:#6c675e;',
       'font-size:11px;letter-spacing:.16em;padding:5px 10px;border-radius:6px;cursor:pointer}',
@@ -122,9 +123,14 @@ window.__ModuleLoader__.load({
       '.sc.dark .bh-eye{border-color:rgba(243,238,228,.28);color:#a29c92}',
       '.sc.dark .bh-eye:hover{color:#f3eee4;border-color:rgba(243,238,228,.5)}',
       '.sc.dark .bh-eye.on{background:#f3eee4;color:#14141a;border-color:#f3eee4}',
-      '.bh-dot-num{width:auto;min-width:20px;height:26px;border:0;background:transparent;',
-      'font-size:20px;font-family:ui-monospace,Consolas,monospace;text-align:center;line-height:26px}',
-      '.bh-dot-num.on{background:transparent;transform:none}',
+      // 数字模式：宽度固定给足（原来还是 11px，文字就溢出压到按钮上了），
+      // 并且要把「已点亮」的实心背景压掉，否则数字会被自己的圆点盖住。
+      '.bh-dots .bh-dot.bh-dot-num{width:22px;min-width:22px;height:30px;border:0;',
+      'background:transparent;font-size:21px;font-family:ui-monospace,Consolas,monospace;',
+      'text-align:center;line-height:30px;overflow:hidden}',
+      '.bh-dots .bh-dot.bh-dot-num.on{background:transparent;border:0;transform:none}',
+      '.bh-dots .bh-dot.bh-dot-num:not(.on){background:transparent;border-bottom:1px solid rgba(20,20,26,.25)}',
+      '.sc.dark .bh-dots .bh-dot.bh-dot-num:not(.on){border-bottom-color:rgba(243,238,228,.25)}',
       '.bh-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(20,20,26,.45);',
       'transition:background .12s ease,transform .12s ease}',
       '.bh-dot.on{background:#14141a;border-color:#14141a;transform:scale(1.12)}',
@@ -954,10 +960,10 @@ window.__ModuleLoader__.load({
                   kids[i].classList.toggle('on', on)
                   // 显示模式：把点换成真正的数字，方便核对，也方便拍照留存。
                   if (revealed) {
-                    kids[i].classList.add('bh-dot-num')
+                    kids[i].className = 'bh-dot bh-dot-num' + (on ? ' on' : '')
                     kids[i].textContent = on ? val.charAt(i) : ''
                   } else {
-                    kids[i].classList.remove('bh-dot-num')
+                    kids[i].className = 'bh-dot' + (on ? ' on' : '')
                     kids[i].textContent = ''
                   }
                 }
