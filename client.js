@@ -883,7 +883,11 @@ window.__ModuleLoader__.load({
                       var left = until ? Math.max(1, Math.ceil((until - Date.now()) / 1000)) : 30
                       return fail('输错太多次，' + left + ' 秒后才能再试 · 也可以点「邮箱验证码跳过」')
                     }
-                    fail((out.data && out.data.error) || '验证失败')
+                    // 输错时把“你实际输了几位”说出来：位数被截断或按错时，
+                    // 一句话就能看出来，不用怀疑自己记错。
+                    var why = (out.data && out.data.error) || '验证失败'
+                    if (/PIN/.test(why)) why += '（这次输入 ' + pin.length + ' 位）'
+                    fail(why)
                   })
                   .catch(function () { go.disabled = false; fail('宿主没有响应') })
               }
