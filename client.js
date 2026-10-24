@@ -815,7 +815,7 @@ window.__ModuleLoader__.load({
                 altNote.textContent = '宿主未连接'
                 hello.style.display = 'none'
               } else if (setup) {
-                hint.textContent = '首次启动 · 设置登录密码（4-8 位数字）'
+                hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-8 位数字）'
                 hello.style.display = 'none'
               } else if (status.hello === 'unavailable') {
                 hello.style.display = 'none'
@@ -850,10 +850,36 @@ window.__ModuleLoader__.load({
                 input.focus()
               }
 
+              // 首次设置：第一次只是记住，第二次核对一致才真正落盘。
+              // 单次输入就生效的话，一个手滑就把自己永久锁在外面。
+              var pendingSetupPin = null
+
               function submit() {
                 var pin = input.value.trim()
                 if (!/^\d{4,8}$/.test(pin)) return fail('PIN 需要 4-8 位数字')
                 if (offline) { sound.thunk(); return done('offline') }
+
+                if (setup && pendingSetupPin === null) {
+                  pendingSetupPin = pin
+                  input.value = ''
+                  paintDots()
+                  paintCount()
+                  hint.textContent = '请再输一次这个 PIN，确认没有按错'
+                  errBox.textContent = ''
+                  sound.tick()
+                  try { input.focus() } catch (e) {}
+                  return
+                }
+                if (setup && pendingSetupPin !== pin) {
+                  pendingSetupPin = null
+                  input.value = ''
+                  paintDots()
+                  paintCount()
+                  hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-8 位数字）'
+                  return fail('两次输入不一致，请重新设置')
+                }
+                if (setup) pendingSetupPin = null
+
                 var target = setup ? '/boot-auth/enroll' : '/boot-auth/pin'
                 go.disabled = true
                 errBox.textContent = ''
@@ -875,24 +901,28 @@ window.__ModuleLoader__.load({
 
               go.addEventListener('click', function () { sound.click(); submit() })
               // 点是我们自己画的：8 个固定槽位，填几个一目了然，不依赖输入框排版。
+              // PIN 是 4-8 位，所以点也不该固定 8 个：先给 4 个，输满再多给一格，
+              // 到 8 为止。这样 4 位的用户不会以为自己还差 4 位没输完。
               var dotsBox = $('bh-dots')
-              var SLOTS = 8
-              if (dotsBox) {
-                dotsBox.innerHTML = ''
-                for (var di = 0; di < SLOTS; di += 1) {
+              var MAX_PIN = 8
+              function paintDots() {
+                if (!dotsBox) return
+                var n = String(input.value || '').length
+                var want = Math.min(MAX_PIN, Math.max(4, n))
+                while (dotsBox.children.length < want) {
                   var d = document.createElement('span')
                   d.className = 'bh-dot'
                   dotsBox.appendChild(d)
                 }
-              }
-              function paintDots() {
-                if (!dotsBox) return
-                var n = String(input.value || '').length
+                while (dotsBox.children.length > want) {
+                  dotsBox.removeChild(dotsBox.lastChild)
+                }
                 var kids = dotsBox.children
                 for (var i = 0; i < kids.length; i += 1) {
                   kids[i].classList.toggle('on', i < n)
                 }
               }
+              paintDots()
 
               // 屏幕键盘：按一下加一位，⌫ 退一位。焦点留在隐藏输入框上，
               // 所以实体键盘和屏幕键盘可以混着用。
@@ -906,7 +936,7 @@ window.__ModuleLoader__.load({
                   sound.click()
                   if (key === 'back') {
                     input.value = String(input.value || '').slice(0, -1)
-                  } else if (String(input.value || '').length < SLOTS) {
+                  } else if (String(input.value || '').length < MAX_PIN) {
                     input.value = String(input.value || '') + key
                   }
                   paintDots()
@@ -919,7 +949,7 @@ window.__ModuleLoader__.load({
               var baseHint = '输入登录密码'
               function paintCount() {
                 var n = String(input.value || '').length
-                hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' / 8') : baseHint
+                hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' 位') : baseHint
                 paintDots()
               }
               input.addEventListener('input', paintCount)
