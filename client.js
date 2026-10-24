@@ -308,7 +308,10 @@ window.__ModuleLoader__.load({
 
       // Cheap timeline so "it hangs" can be pinpointed instead of guessed.
       function mark(stage) {
-        try { console.debug('[boot-handmade]', stage, Math.round(performance.now()) + 'ms') } catch (e) {}
+        var ms = Math.round(performance.now())
+        try { console.debug('[boot-handmade]', stage, ms + 'ms') } catch (e) {}
+        // 也送到宿主留档：不出问题也能看出哪一段慢。
+        try { postJSON('/boot-auth/timing', { stage: stage, ms: ms }) } catch (e) {}
       }
 
       // 门一关，门里的「修改 PIN」就找不到了。这里留一个常驻的小入口，

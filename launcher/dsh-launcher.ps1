@@ -113,6 +113,21 @@ public class BhWin {
   $pct.Size = New-Object System.Drawing.Size(48, 16)
   $pct.Location = New-Object System.Drawing.Point(340, 100)
   $form.Controls.Add($pct)
+
+  # 百分比说明“走了多少”，这行说明“在做什么”。
+  $step = New-Object System.Windows.Forms.Label
+  $step.Text = ""
+  $step.ForeColor = [System.Drawing.Color]::FromArgb(163, 158, 148)
+  $step.Font = New-Object System.Drawing.Font('Microsoft YaHei', 9)
+  $step.AutoSize = $false
+  $step.TextAlign = 'MiddleLeft'
+  $step.Size = New-Object System.Drawing.Size(240, 18)
+  $step.Location = New-Object System.Drawing.Point(32, 96)
+  $form.Controls.Add($step)
+
+  $txtSpawn = -join (@(0x6B63, 0x5728, 0x542F, 0x52A8, 0x8FDB, 0x7A0B) | ForEach-Object { [char]$_ })
+  $txtWait = -join (@(0x7B49, 0x5F85, 0x7A97, 0x53E3, 0x51FA, 0x73B0) | ForEach-Object { [char]$_ })
+  $txtLoading = -join (@(0x754C, 0x9762, 0x52A0, 0x8F7D, 0x4E2D) | ForEach-Object { [char]$_ })
   Write-Log 'form built'
 
   $spawned = $null
@@ -139,6 +154,15 @@ public class BhWin {
     $w = [int](356 * $ratio)
     if ($w -gt $bar.Width) { $bar.Width = $w }
     $pct.Text = [string][int]([Math]::Round($ratio * 100)) + '%'
+
+    # 三段时间各自对应一件真实的事，而不是编出来的阶段。
+    if ($state.elapsed -lt 1200) {
+      if ($step.Text -ne $txtSpawn) { $step.Text = $txtSpawn }
+    } elseif ($state.elapsed -lt 6000) {
+      if ($step.Text -ne $txtWait) { $step.Text = $txtWait }
+    } elseif ($step.Text -ne $txtLoading) {
+      $step.Text = $txtLoading
+    }
 
     # 启动的进程已经退出、而系统里还有别的同名进程：单实例锁把它挡回来了，
     # 那个后台实例又没有窗口，所以什么都不会出现。
