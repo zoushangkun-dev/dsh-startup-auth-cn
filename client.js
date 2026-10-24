@@ -113,7 +113,18 @@ window.__ModuleLoader__.load({
       '.bh-auth{display:none;margin-top:22px;max-width:468px}',
       // 输入框只负责接收键盘和焦点，画面上的点由我们自己画，不会被裁掉。
       '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
-      '.bh-dots{display:flex;gap:12px;align-items:center;height:34px;margin-bottom:14px}',
+      '.bh-dots-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}',
+      '.bh-dots{display:flex;gap:12px;align-items:center;height:34px}',
+      '.bh-eye{border:1px solid rgba(20,20,26,.3);background:transparent;color:#6c675e;',
+      'font-size:11px;letter-spacing:.16em;padding:5px 10px;border-radius:6px;cursor:pointer}',
+      '.bh-eye:hover{color:#14141a;border-color:rgba(20,20,26,.5)}',
+      '.bh-eye.on{background:#14141a;color:#f3eee4;border-color:#14141a}',
+      '.sc.dark .bh-eye{border-color:rgba(243,238,228,.28);color:#a29c92}',
+      '.sc.dark .bh-eye:hover{color:#f3eee4;border-color:rgba(243,238,228,.5)}',
+      '.sc.dark .bh-eye.on{background:#f3eee4;color:#14141a;border-color:#f3eee4}',
+      '.bh-dot-num{width:auto;min-width:20px;height:26px;border:0;background:transparent;',
+      'font-size:20px;font-family:ui-monospace,Consolas,monospace;text-align:center;line-height:26px}',
+      '.bh-dot-num.on{background:transparent;transform:none}',
       '.bh-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(20,20,26,.45);',
       'transition:background .12s ease,transform .12s ease}',
       '.bh-dot.on{background:#14141a;border-color:#14141a;transform:scale(1.12)}',
@@ -209,7 +220,11 @@ window.__ModuleLoader__.load({
       '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
       '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
       ' maxlength="8" autocomplete="off" spellcheck="false" aria-label="登录密码">',
-      '<div class="bh-dots" id="bh-dots" aria-hidden="true"></div>',
+      '<div class="bh-dots-row">',
+      '<div class="bh-dots" id="bh-dots"></div>',
+      '<button class="bh-eye bh-mono" id="bh-eye" type="button" aria-pressed="false"',
+      ' title="显示输入的数字，方便核对">显示</button>',
+      '</div>',
       '<div class="bh-keypad" id="bh-keypad">',
       '<button class="bh-key" type="button" data-key="1">1</button>',
       '<button class="bh-key" type="button" data-key="2">2</button>',
@@ -453,6 +468,8 @@ window.__ModuleLoader__.load({
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password" maxlength="8" placeholder="当前 PIN" /></div>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password" maxlength="8" placeholder="新 PIN（4-8 位数字）" /></div>' +
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
+          '<div class="bh-manage-row"><label class="bh-toggle"><input type="checkbox" id="bh-m-show" /> ' +
+          '显示输入内容（核对用）</label></div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
           '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>' +
           '</div>' +
@@ -613,6 +630,18 @@ window.__ModuleLoader__.load({
             })
             .catch(function () { say('宿主没有响应') })
         })
+
+        // 三个 PIN 框都能切明文：改之前先看清自己输的什么。
+        var showBox = panel.querySelector('#bh-m-show')
+        if (showBox) {
+          showBox.addEventListener('change', function () {
+            var kind = showBox.checked ? 'text' : 'password'
+            ['#bh-m-current', '#bh-m-next', '#bh-m-confirm'].forEach(function (sel) {
+              var el = panel.querySelector(sel)
+              if (el) el.type = kind
+            })
+          })
+        }
 
         // ---- 外观：写 localStorage，下次开门立即生效，不必等重启 ----
         var themeMsg = panel.querySelector('#bh-theme-msg')
@@ -905,9 +934,11 @@ window.__ModuleLoader__.load({
               // 到 8 为止。这样 4 位的用户不会以为自己还差 4 位没输完。
               var dotsBox = $('bh-dots')
               var MAX_PIN = 8
+              var revealed = false
               function paintDots() {
                 if (!dotsBox) return
-                var n = String(input.value || '').length
+                var val = String(input.value || '')
+                var n = val.length
                 var want = Math.min(MAX_PIN, Math.max(4, n))
                 while (dotsBox.children.length < want) {
                   var d = document.createElement('span')
@@ -919,10 +950,32 @@ window.__ModuleLoader__.load({
                 }
                 var kids = dotsBox.children
                 for (var i = 0; i < kids.length; i += 1) {
-                  kids[i].classList.toggle('on', i < n)
+                  var on = i < n
+                  kids[i].classList.toggle('on', on)
+                  // 显示模式：把点换成真正的数字，方便核对，也方便拍照留存。
+                  if (revealed) {
+                    kids[i].classList.add('bh-dot-num')
+                    kids[i].textContent = on ? val.charAt(i) : ''
+                  } else {
+                    kids[i].classList.remove('bh-dot-num')
+                    kids[i].textContent = ''
+                  }
                 }
               }
               paintDots()
+
+              // 每个密码输入都该能变成明文看一眼——不然记不住的人连截图都拍不了。
+              var eyeBtn = $('bh-eye')
+              if (eyeBtn) {
+                eyeBtn.addEventListener('click', function () {
+                  revealed = !revealed
+                  eyeBtn.classList.toggle('on', revealed)
+                  eyeBtn.setAttribute('aria-pressed', revealed ? 'true' : 'false')
+                  eyeBtn.textContent = revealed ? '隐藏' : '显示'
+                  sound.click()
+                  paintDots()
+                })
+              }
 
               // 屏幕键盘：按一下加一位，⌫ 退一位。焦点留在隐藏输入框上，
               // 所以实体键盘和屏幕键盘可以混着用。
