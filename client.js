@@ -473,6 +473,150 @@ window.__ModuleLoader__.load({
         })
       }
 
+      // 进应用之后的一次性说明。默认只在「这一版没提示过」时出现，
+      // 勾了「下一次更新前不再展示」就按版本号记下来。
+      function maybeAnnounce() {
+        if (document.getElementById('bh-announce')) return
+
+        // 先问宿主：该不该弹、入口在不在。
+        postJSON('/boot-auth/announce', { action: 'status' }).then(function (out) {
+          var data = out.data || {}
+          if (!data.shouldShow) {
+            // 入口检测：说好装了却不见了，就补一个回来，不打扰人。
+            if (data.launcherInstalled === false && data.launcherAvailable) {
+              postJSON('/boot-auth/announce', { action: 'ensure' })
+            }
+            return
+          }
+          waitForQuiet(function () { showAnnounce(data) })
+        }).catch(function () {})
+      }
+
+      // 别的插件也会弹「更新日志」。它们先说话，我们排队——这条通知不急。
+      function otherOverlayVisible() {
+        var sel = '[role="dialog"],[class*="modal"],[class*="dialog"],[class*="popup"],' +
+                  '[class*="changelog"],[class*="update-log"],[class*="toast"],[class*="overlay"]'
+        var nodes = document.querySelectorAll(sel)
+        for (var i = 0; i < nodes.length; i += 1) {
+          var el = nodes[i]
+          if (el.id && el.id.indexOf('bh-') === 0) continue
+          if (el.closest && el.closest('#bh-announce')) continue
+          var r = el.getBoundingClientRect()
+          if (r.width < 120 || r.height < 80) continue
+          if (r.bottom <= 0 || r.top >= window.innerHeight) continue
+          var cs = window.getComputedStyle(el)
+          if (cs.opacity === '0' || cs.visibility === 'hidden' || cs.display === 'none') continue
+          return true
+        }
+        return false
+      }
+
+      function waitForQuiet(done) {
+        var tries = 0
+        var timer = setInterval(function () {
+          tries += 1
+          if (!otherOverlayVisible()) { clearInterval(timer); done(); return }
+          if (tries >= 40) clearInterval(timer)     // 一分钟还没散，就不弹了
+        }, 1500)
+      }
+
+      function showAnnounce(data) {
+        var style = document.createElement('style')
+        style.id = 'bh-announce-style'
+        style.textContent = [
+          '#bh-announce{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);',
+          'z-index:2147483647;width:420px;padding:22px 22px 18px;border:1px solid #3a3a46;',
+          'border-radius:12px;background:#14141a;box-shadow:0 24px 70px rgba(0,0,0,.6);',
+          'font-family:inherit;color:#f3eee4}',
+          '#bh-announce h3{margin:0 0 8px;font-size:16px;font-weight:600;letter-spacing:.02em}',
+          '#bh-announce p{margin:0 0 12px;font-size:12.5px;line-height:1.75;color:#b9b3a7}',
+          '#bh-announce .bh-demo{margin:14px 0 16px;padding:12px;border-radius:8px;background:#0f0f14}',
+          '#bh-announce .bh-demo-step{font-size:11px;color:#8d887e;margin-bottom:8px;letter-spacing:.06em}',
+          '#bh-announce .bh-demo-track{height:4px;border-radius:2px;background:#26262f;overflow:hidden}',
+          '#bh-announce .bh-demo-fill{height:100%;width:0;background:#ff5a1f;transition:width .12s linear}',
+          '#bh-announce .bh-demo-pct{float:right;font-size:10px;color:#8d887e;font-family:Consolas,monospace}',
+          '#bh-announce .bh-row{display:flex;align-items:center;gap:10px;margin-top:14px}',
+          '#bh-announce label{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#8d887e;cursor:pointer}',
+          '#bh-announce .bh-spacer{flex:1}',
+          '#bh-announce button{border:0;border-radius:6px;padding:9px 14px;font-size:12.5px;cursor:pointer}',
+          '#bh-announce .bh-primary{background:#ff5a1f;color:#14141a;font-weight:600}',
+          '#bh-announce .bh-ghost{background:#232330;color:#c9c3b8}',
+        ].join('')
+        document.head.appendChild(style)
+
+        var box = document.createElement('div')
+        box.id = 'bh-announce'
+        box.innerHTML =
+          '<h3>现在有了新的启动方式</h3>' +
+          '<p>桌面上多了一个 <b>DeepSeek Harness (Launcher)</b>。点它之后会立刻弹出小窗，' +
+          '告诉你现在走到哪一步，不用猜它是不是没反应。</p>' +
+          '<div class="bh-demo">' +
+          '<div class="bh-demo-step"><span id="bh-demo-text">正在启动进程</span>' +
+          '<span class="bh-demo-pct" id="bh-demo-pct">0%</span></div>' +
+          '<div class="bh-demo-track"><div class="bh-demo-fill" id="bh-demo-fill"></div></div>' +
+          '</div>' +
+          '<p style="font-size:11.5px;color:#8d887e">上面只是示意。原来的快捷方式保留不动，' +
+          '不满意随时在设置里卸掉。</p>' +
+          '<div class="bh-row">' +
+          '<label><input type="checkbox" id="bh-announce-mute" /> 下一次更新前不再展示</label>' +
+          '<span class="bh-spacer"></span>' +
+          '<button class="bh-ghost" id="bh-announce-later" type="button">知道了</button>' +
+          '<button class="bh-primary" id="bh-announce-enable" type="button">' +
+          (data.launcherInstalled ? '已启用' : '启用它') + '</button>' +
+          '</div>'
+        document.documentElement.appendChild(box)
+        if (data.launcherInstalled) {
+          var enable = box.querySelector('#bh-announce-enable')
+          if (enable) enable.disabled = true
+        }
+
+        // 示意动画：三句话对应启动器里真实会出现的三步。
+        var phase = 0
+        var pct = 0
+        var steps = ['正在启动进程', '等待窗口出现', '界面加载中']
+        var tick = setInterval(function () {
+          if (!document.getElementById('bh-announce')) { clearInterval(tick); return }
+          pct = Math.min(92, pct + 2)
+          var fill = document.getElementById('bh-demo-fill')
+          var label = document.getElementById('bh-demo-pct')
+          var text = document.getElementById('bh-demo-text')
+          if (fill) fill.style.width = pct + '%'
+          if (label) label.textContent = pct + '%'
+          if (text) {
+            if (pct > 60) phase = 2
+            else if (pct > 14) phase = 1
+            text.textContent = steps[phase]
+          }
+          if (pct >= 92) clearInterval(tick)
+        }, 60)
+
+        function close(mute) {
+          try { box.remove() } catch (e) {}
+          try { style.remove() } catch (e) {}
+          if (mute) postJSON('/boot-auth/announce', { action: 'dismiss' })
+        }
+
+        box.querySelector('#bh-announce-later').addEventListener('click', function () {
+          var mute = box.querySelector('#bh-announce-mute')
+          close(!!(mute && mute.checked))
+        })
+        box.querySelector('#bh-announce-enable').addEventListener('click', function () {
+          var btn = box.querySelector('#bh-announce-enable')
+          if (btn) { btn.disabled = true; btn.textContent = '正在启用…' }
+          postJSON('/boot-auth/launcher', { action: 'install' }).then(function () {
+            var mute = box.querySelector('#bh-announce-mute')
+            close(!!(mute && mute.checked))
+          }).catch(function () {
+            if (btn) { btn.disabled = false; btn.textContent = '启用失败，重试' }
+          })
+        })
+        // Esc 关掉，和其他弹窗一致。
+        function onKey(e) {
+          if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); close(false) }
+        }
+        document.addEventListener('keydown', onKey)
+      }
+
       function finish() {
         if (finished) return
         finished = true
@@ -1089,6 +1233,7 @@ window.__ModuleLoader__.load({
         finish()
         // The overlay is gone at this point; the app is interactive again.
         setTimeout(function () { if (onGateClosed) onGateClosed() }, 500)
+        setTimeout(function () { try { maybeAnnounce() } catch (e) {} }, 1200)
       }
 
       run().catch(function (err) {
