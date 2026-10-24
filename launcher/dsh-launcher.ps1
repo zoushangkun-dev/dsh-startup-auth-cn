@@ -37,6 +37,16 @@ try {
   Add-Type -AssemblyName System.Drawing
   Write-Log 'assemblies loaded'
 
+  # 用户可以在设置里关掉小窗：关掉后点快捷方式就是纯粹启动，没有任何界面。
+  $settingsPath = Join-Path $env:USERPROFILE '.dshoot-settings.json'
+  $splash = $true
+  if (Test-Path -LiteralPath $settingsPath) {
+    try {
+      $cfg = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+      if ($null -ne $cfg.splashEnabled) { $splash = [bool]$cfg.splashEnabled }
+    } catch { }
+  }
+
   # Already running with a window: bring it up instead of starting a second one.
   $existing = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
     Where-Object { $_.MainWindowHandle -ne 0 })
@@ -68,6 +78,12 @@ public class BhWin {
       [BhWin]::ShowWindow($existing[0].MainWindowHandle, 9) | Out-Null
       [BhWin]::SetForegroundWindow($existing[0].MainWindowHandle) | Out-Null
     } catch { Write-Log ('focus failed: ' + $_.Exception.Message) }
+    exit 0
+  }
+
+  if (-not $splash -and -not $Demo) {
+    Write-Log 'splash disabled, starting silently'
+    if (Test-Path -LiteralPath $Exe) { Start-Process -FilePath $Exe -ErrorAction SilentlyContinue }
     exit 0
   }
 
