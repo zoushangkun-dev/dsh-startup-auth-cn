@@ -38,7 +38,7 @@ try {
   Write-Log 'assemblies loaded'
 
   # 用户可以在设置里关掉小窗：关掉后点快捷方式就是纯粹启动，没有任何界面。
-  $settingsPath = Join-Path $env:USERPROFILE '.dshoot-settings.json'
+  $settingsPath = Join-Path $env:USERPROFILE '.dsh\boot-settings.json'
   $splash = $true
   if (Test-Path -LiteralPath $settingsPath) {
     try {
