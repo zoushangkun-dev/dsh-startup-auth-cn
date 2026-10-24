@@ -16,6 +16,7 @@ window.__ModuleLoader__.load({
 
     var DONE_KEY = 'dsh-boot-handmade:done'
     var ROOT_ID = 'boot-hm-root'
+    var BH_THEME_KEY = 'bh-theme'
 
     var CSS = [
       '#boot-hm-root{position:fixed;inset:0;z-index:2147483640;overflow:hidden;isolation:isolate;',
@@ -58,6 +59,23 @@ window.__ModuleLoader__.load({
       '.sb-wash.go{animation:bh-wash 1.05s cubic-bezier(.4,0,.2,1) forwards}',
       '@keyframes bh-wash{0%{opacity:0}40%{opacity:.55}56%{opacity:.55}100%{opacity:0}}',
 
+      // 深色模式：把这张纸换成深色，其余动画本来就是深色的。
+      '.sc.dark{background:#101014;color:#f3eee4}',
+      '.sc.dark::before{background-image:linear-gradient(rgba(243,238,228,.05) 1px,transparent 1px),',
+      'linear-gradient(90deg,rgba(243,238,228,.05) 1px,transparent 1px)}',
+      '.sc.dark .sc-frame{border-color:rgba(243,238,228,.16)}',
+      '.sc.dark .sc-head{color:#8d887e}',
+      '.sc.dark .sc-side{color:#6c675e}',
+      '.sc.dark .sc-note{color:#a29c92}',
+      '.sc.dark .bh-auth-hint{color:#8d887e}',
+      '.sc.dark .bh-pin{border-color:rgba(243,238,228,.22);background:#17171d;color:#f3eee4}',
+      '.sc.dark .bh-pin::placeholder{color:#6c675e}',
+      '.sc.dark .bh-hello{color:#c9c3b8;border-color:rgba(243,238,228,.18)}',
+      '.sc.dark .bh-recover{color:#8d887e}',
+      '.sc.dark .bh-recover-box{border-color:rgba(243,238,228,.14)}',
+      '.sc.dark .bh-direct{color:#8d887e;border-color:rgba(243,238,228,.14)}',
+      '.sc.dark .bh-rows{color:#8d887e}',
+      '.sc.dark .bh-ring{border-color:rgba(243,238,228,.18)}',
       '.sc{background:#f3eee4;color:#14141a}',
       '.sc::before{content:\'\';position:absolute;inset:0;pointer-events:none;',
       'background-image:linear-gradient(rgba(20,20,26,.055) 1px,transparent 1px),',
@@ -301,6 +319,23 @@ window.__ModuleLoader__.load({
       root.innerHTML = TEMPLATE
       document.documentElement.appendChild(root)
 
+      // 主题：auto 跟随系统，其余照设置来。
+      function resolveTheme() {
+        var saved = 'auto'
+        try { saved = localStorage.getItem(BH_THEME_KEY) || 'auto' } catch (e) {}
+        if (saved === 'light' || saved === 'dark') return saved
+        try {
+          return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark' : 'light'
+        } catch (e) { return 'dark' }
+      }
+
+      // 门（那张纸）按主题决定深浅；动画其余部分本来就是深色。
+      try {
+        var scEl = root.querySelector('.sc')
+        if (scEl && resolveTheme() === 'dark') scEl.classList.add('dark')
+      } catch (e) {}
+
       var sound = Beep()
       var finished = false
       var watchdog = null
@@ -399,6 +434,15 @@ window.__ModuleLoader__.load({
           '<div class="bh-manage-note">关掉之后点快捷方式就是直接启动，没有任何界面。<br/>' +
           '打开时会显示步骤和百分比，方便判断是不是卡住了。</div>' +
           '</div>' +
+          '<div class="bh-sec" id="bh-sec-theme" style="display:none">' +
+          '<div class="bh-manage-note" style="margin-top:0">门的配色。动画本身一直是深色的。</div>' +
+          '<div class="bh-manage-row" id="bh-theme-row" style="display:flex;gap:6px">' +
+          '<button class="sc-btn bh-theme-btn" data-theme="auto" type="button">跟随系统</button>' +
+          '<button class="sc-btn bh-theme-btn" data-theme="light" type="button">浅色</button>' +
+          '<button class="sc-btn bh-theme-btn" data-theme="dark" type="button">深色</button>' +
+          '</div>' +
+          '<div class="bh-manage-note" id="bh-theme-msg">当前：跟随系统</div>' +
+          '</div>' +
           '<div class="bh-sec" id="bh-sec-launcher" style="display:none">' +
           '<div class="bh-manage-note" id="bh-l-state">启动方式：检查中…</div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-l-go" type="button">启用桌面启动器</button></div>' +
@@ -425,6 +469,7 @@ window.__ModuleLoader__.load({
         menu.id = 'bh-menu'
         menu.innerHTML =
           '<button type="button" data-what="login">更改登录 PIN</button>' +
+          '<button type="button" data-what="theme">外观（深浅色）</button>' +
           '<button type="button" data-what="splash">启动小窗</button>' +
           '<button type="button" data-what="launcher">桌面启动器</button>'
         document.documentElement.appendChild(menu)
@@ -432,10 +477,13 @@ window.__ModuleLoader__.load({
         var title = panel.querySelector('#bh-m-title')
         var secs = {
           login: panel.querySelector('#bh-sec-login'),
+          theme: panel.querySelector('#bh-sec-theme'),
           splash: panel.querySelector('#bh-sec-splash'),
           launcher: panel.querySelector('#bh-sec-launcher'),
         }
-        var titles = { login: '更改登录 PIN', splash: '启动小窗', launcher: '桌面启动器' }
+        var titles = {
+          login: '更改登录 PIN', theme: '外观', splash: '启动小窗', launcher: '桌面启动器',
+        }
 
         function showSection(what) {
           Object.keys(secs).forEach(function (k) {
@@ -516,6 +564,29 @@ window.__ModuleLoader__.load({
             })
             .catch(function () { say('宿主没有响应') })
         })
+
+        // ---- 外观：写 localStorage，下次开门立即生效，不必等重启 ----
+        var themeMsg = panel.querySelector('#bh-theme-msg')
+        var themeNames = { auto: '跟随系统', light: '浅色', dark: '深色' }
+        function paintTheme() {
+          var cur = 'auto'
+          try { cur = localStorage.getItem(BH_THEME_KEY) || 'auto' } catch (e) {}
+          if (themeMsg) themeMsg.textContent = '当前：' + (themeNames[cur] || cur)
+          panel.querySelectorAll('.bh-theme-btn').forEach(function (btn) {
+            var on = btn.getAttribute('data-theme') === cur
+            btn.style.opacity = on ? '1' : '.55'
+            btn.style.outline = on ? '2px solid #ff5a1f' : 'none'
+          })
+        }
+        panel.querySelectorAll('.bh-theme-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var what = btn.getAttribute('data-theme')
+            try { localStorage.setItem(BH_THEME_KEY, what) } catch (e) {}
+            postJSON('/boot-auth/settings', { theme: what }).catch(function () {})
+            paintTheme()
+          })
+        })
+        paintTheme()
 
         // ---- 启动小窗开关 ----
         var splashBox = panel.querySelector('#bh-splash-toggle')
