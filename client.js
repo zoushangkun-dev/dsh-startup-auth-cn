@@ -397,6 +397,7 @@ window.__ModuleLoader__.load({
           'border-radius:5px;background:transparent;color:#c9c3b8;font-size:12.5px;cursor:pointer}',
           '#bh-menu button:hover{background:#232330;color:#f3eee4}',
           '#bh-manage{position:fixed;z-index:2147483647;width:330px;display:none;padding:18px;',
+          'max-height:calc(100vh - 24px);overflow:auto;box-sizing:border-box;',
           'border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
           'box-shadow:0 18px 50px rgba(0,0,0,.6);color:#f3eee4}',
           '#bh-manage h4{margin:0 0 12px;font-size:13px;letter-spacing:.1em;color:#f3eee4}',
@@ -511,17 +512,33 @@ window.__ModuleLoader__.load({
           login: '更改登录 PIN', theme: '外观', splash: '启动小窗', launcher: '桌面启动器',
         }
 
+        // 面板要“永远整块在屏幕里”。之前只算一次位置，侧栏一滚动、窗口一变，
+        // 面板就跟着那一行跑到屏幕边缘，还被裁掉一半。
+        function placePanel() {
+          var r = trigger.getBoundingClientRect()
+          var pw = panel.offsetWidth || 330
+          var ph = panel.offsetHeight || 320
+          var gap = 12
+          var left = r.right + gap
+          if (left + pw > window.innerWidth - 8) left = r.left - pw - gap   // 右边放不下就翻到左边
+          left = Math.max(8, Math.min(left, window.innerWidth - pw - 8))
+          // 垂直方向跟那一行对齐，但整块钉在视口内
+          var top = r.top - 24
+          top = Math.max(8, Math.min(top, window.innerHeight - ph - 8))
+          panel.style.left = left + 'px'
+          panel.style.top = top + 'px'
+        }
+
         function showSection(what) {
           Object.keys(secs).forEach(function (k) {
             if (secs[k]) secs[k].style.display = k === what ? 'block' : 'none'
           })
           if (title) title.textContent = titles[what] || ''
-          var r = trigger.getBoundingClientRect()
-          panel.style.left = Math.min(window.innerWidth - 350, Math.max(8, r.right + 10)) + 'px'
-          panel.style.top = Math.max(8, Math.min(window.innerHeight - 320, r.top)) + 'px'
           panel.style.display = 'block'
+          placePanel()
           if (what === 'launcher') refreshLauncher()
           if (what === 'splash') refreshSplash()
+          if (what === 'theme') paintTheme()
         }
 
         function placeMenu() {
@@ -558,6 +575,12 @@ window.__ModuleLoader__.load({
           e.stopPropagation()
           hidePanel()
         })
+        function followTrigger() {
+          if (panel.style.display === 'block') placePanel()
+        }
+        window.addEventListener('resize', followTrigger)
+        window.addEventListener('scroll', followTrigger, true)
+
         document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') { hidePanel(); hideMenu() }
         })
