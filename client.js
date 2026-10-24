@@ -111,57 +111,15 @@ window.__ModuleLoader__.load({
       '.bh-row.on{opacity:1;transform:none}',
 
       '.bh-auth{display:none;margin-top:22px;max-width:468px}',
-      // 输入框只负责接收键盘和焦点，画面上的点由我们自己画，不会被裁掉。
-      '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
-      '.bh-auth-head{display:flex;align-items:center;justify-content:space-between;gap:16px}',
-      '.bh-auth-head .bh-auth-hint{margin-bottom:10px}',
-      '.bh-dots{display:flex;flex-wrap:wrap;gap:10px;align-items:center;min-height:38px;',
-      'max-height:132px;overflow-y:auto;overflow-x:hidden;margin-bottom:14px;',
-      'overflow-x:auto;overflow-y:hidden;padding-bottom:2px}',
-      '@keyframes bh-slot-in{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}',
-      '.bh-dot.bh-new{animation:bh-slot-in .18s ease}',
-      '.bh-eye{flex:none}',
-      '.bh-eye{border:1px solid rgba(20,20,26,.3);background:transparent;color:#6c675e;',
-      'font-size:11px;letter-spacing:.16em;padding:5px 10px;border-radius:6px;cursor:pointer}',
+      // 眼睛按钮：和输入框同高，用来在明文/密文之间切换。
+      '.bh-eye{flex:none;display:flex;align-items:center;justify-content:center;width:46px;',
+      'border:1px solid rgba(20,20,26,.3);border-radius:6px;background:transparent;',
+      'color:#6c675e;cursor:pointer;padding:0}',
       '.bh-eye:hover{color:#14141a;border-color:rgba(20,20,26,.5)}',
-      '.bh-eye.on{background:#14141a;color:#f3eee4;border-color:#14141a}',
-      '.sc.dark .bh-eye{border-color:rgba(243,238,228,.28);color:#a29c92}',
-      '.sc.dark .bh-eye:hover{color:#f3eee4;border-color:rgba(243,238,228,.5)}',
-      '.sc.dark .bh-eye.on{background:#f3eee4;color:#14141a;border-color:#f3eee4}',
-      // 数字模式：宽度固定给足（原来还是 11px，文字就溢出压到按钮上了），
-      // 并且要把「已点亮」的实心背景压掉，否则数字会被自己的圆点盖住。
-      '#bh-dots .bh-dot.bh-dot-num{width:22px;min-width:22px;height:32px;border:0 !important;border-radius:0 !important;background:transparent !important;',
-      'background:transparent;font-size:21px;font-family:ui-monospace,Consolas,monospace;',
-      'text-align:center;line-height:30px;overflow:hidden}',
-      '.bh-dots .bh-dot.bh-dot-num.on{background:transparent !important;border:0 !important;transform:none}',
-      '.bh-dots .bh-dot.bh-dot-num:not(.on){background:transparent;border-bottom:1px solid rgba(20,20,26,.25)}',
-      '.sc.dark .bh-dots .bh-dot.bh-dot-num:not(.on){border-bottom-color:rgba(243,238,228,.25)}',
-      // 深色主题那条 .sc.dark .bh-dot.on 优先级同样高且排在后头，会把数字盖成白圆，
-      // 所以这里要再高一级压回去。
-      '.sc.dark .bh-dots .bh-dot.bh-dot-num.on{background:transparent !important;border:0 !important;transform:none}',
-      '.sc.dark .bh-dots .bh-dot.bh-dot-num{color:#f3eee4}',
-      // 用 #bh-dots 提高优先级：应用的全局样式会把 border-radius 抹平，
-      // 结果圆点变成了圆角方块。
-      '#bh-dots .bh-dot{width:12px;height:12px;border-radius:999px !important;box-sizing:border-box;',
-      'border:1px solid rgba(20,20,26,.45) !important;flex:none;',
-      'transition:background .12s ease,transform .12s ease}',
-      '#bh-dots .bh-dot.on{background:#14141a !important;border-color:#14141a !important;border-radius:999px !important;transform:scale(1.1)}',
-      '.sc.dark #bh-dots .bh-dot{border-color:rgba(243,238,228,.45)}',
-      '.sc.dark #bh-dots .bh-dot.on{background:#f3eee4 !important;border-color:#f3eee4 !important}',
-      '.bh-keypad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}',
-      '.bh-key{height:52px;border:1px solid rgba(20,20,26,.3);background:#fffdf8;',
-      'color:#14141a;font-family:ui-monospace,Consolas,monospace;font-size:20px;',
-      'border-radius:8px;cursor:pointer;transition:background .12s ease,transform .06s ease}',
-      '.bh-key:hover{background:#f6f1e7}',
-      '.bh-key:active{transform:scale(.96)}',
-      '.bh-key-dim{color:#8d887e}',
-      '.bh-key-go{background:#14141a;color:#f3eee4;border-color:#14141a;font-size:14px;',
-      'font-family:inherit;letter-spacing:.1em}',
-      '.bh-key-go:hover{background:#2a2a33}',
-      '.sc.dark .bh-key{background:#17171d;color:#f3eee4;border-color:rgba(243,238,228,.22)}',
-      '.sc.dark .bh-key:hover{background:#232330}',
-      '.sc.dark .bh-key-go{background:#ff5a1f;color:#14141a;border-color:#ff5a1f}',
-      '.sc.dark .bh-key-go:hover{background:#ff7038}',
+      '.bh-eye.on{color:#14141a;background:rgba(20,20,26,.06)}',
+      '.sc.dark .bh-eye{border-color:rgba(243,238,228,.24);color:#a29c92}',
+      '.sc.dark .bh-eye:hover{color:#f3eee4;border-color:rgba(243,238,228,.45)}',
+      '.sc.dark .bh-eye.on{color:#f3eee4;background:rgba(243,238,228,.08)}',
       '.bh-auth.on{display:block}',
       '.bh-auth-hint{font-size:11px;letter-spacing:.22em;color:#6c675e;margin-bottom:10px}',
       '.bh-auth-row{display:flex;gap:10px;align-items:stretch}',
@@ -234,27 +192,19 @@ window.__ModuleLoader__.load({
       '<div class="sc-note" id="bh-note"></div>',
       '<div class="bh-rows bh-mono" id="bh-rows"></div>',
       '<div class="bh-auth" id="bh-auth">',
-      '<div class="bh-auth-head">',
       '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
-      '<button class="bh-eye bh-mono" id="bh-eye" type="button" aria-pressed="false"',
-      ' title="显示输入的数字，方便核对">显示</button>',
-      '</div>',
-      '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
-      ' maxlength="32" autocomplete="off" spellcheck="false" aria-label="登录密码">',
-      '<div class="bh-dots" id="bh-dots"></div>',
-      '<div class="bh-keypad" id="bh-keypad">',
-      '<button class="bh-key" type="button" data-key="1">1</button>',
-      '<button class="bh-key" type="button" data-key="2">2</button>',
-      '<button class="bh-key" type="button" data-key="3">3</button>',
-      '<button class="bh-key" type="button" data-key="4">4</button>',
-      '<button class="bh-key" type="button" data-key="5">5</button>',
-      '<button class="bh-key" type="button" data-key="6">6</button>',
-      '<button class="bh-key" type="button" data-key="7">7</button>',
-      '<button class="bh-key" type="button" data-key="8">8</button>',
-      '<button class="bh-key" type="button" data-key="9">9</button>',
-      '<button class="bh-key bh-key-dim" type="button" data-key="back">⌫</button>',
-      '<button class="bh-key" type="button" data-key="0">0</button>',
-      '<button class="bh-key bh-key-go" id="bh-go" type="button">解锁</button>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-pin" type="password" inputmode="numeric" maxlength="32"',
+      ' autocomplete="off" spellcheck="false" aria-label="登录密码">',
+      '<button class="bh-eye" id="bh-eye" type="button" aria-pressed="false"',
+      ' aria-label="显示密码" title="显示密码">',
+      '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">',
+      '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"',
+      ' fill="none" stroke="currentColor" stroke-width="1.6"/>',
+      '<circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+      '</svg>',
+      '</button>',
+      '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
       '<button class="bh-recover bh-mono" id="bh-totp-setup" type="button" style="display:none">用验证器 6 位码进入</button>',
@@ -901,8 +851,7 @@ window.__ModuleLoader__.load({
                 if (setup && pendingSetupPin === null) {
                   pendingSetupPin = pin
                   input.value = ''
-                  paintDots()
-                  paintCount()
+                    paintCount()
                   hint.textContent = '请再输一次这个 PIN，确认没有按错'
                   errBox.textContent = ''
                   sound.tick()
@@ -912,8 +861,7 @@ window.__ModuleLoader__.load({
                 if (setup && pendingSetupPin !== pin) {
                   pendingSetupPin = null
                   input.value = ''
-                  paintDots()
-                  paintCount()
+                    paintCount()
                   hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-32 位数字）'
                   return fail('两次输入不一致，请重新设置')
                 }
@@ -939,82 +887,38 @@ window.__ModuleLoader__.load({
               }
 
               go.addEventListener('click', function () { sound.click(); submit() })
-              // 点是我们自己画的：8 个固定槽位，填几个一目了然，不依赖输入框排版。
-              // PIN 是 4-8 位，所以点也不该固定 8 个：先给 4 个，输满再多给一格，
-              // 到 8 为止。这样 4 位的用户不会以为自己还差 4 位没输完。
-              var dotsBox = $('bh-dots')
-              var MAX_PIN = 32
-              var revealed = false
-              function paintDots() {
-                if (!dotsBox) return
-                var val = String(input.value || '')
-                var n = val.length
-                var want = Math.min(MAX_PIN, Math.max(4, n))
-                while (dotsBox.children.length < want) {
-                  var d = document.createElement('span')
-                  d.className = 'bh-dot bh-new'
-                  dotsBox.appendChild(d)
-                }
-                while (dotsBox.children.length > want) {
-                  dotsBox.removeChild(dotsBox.lastChild)
-                }
-                var kids = dotsBox.children
-                for (var i = 0; i < kids.length; i += 1) {
-                  var on = i < n
-                  kids[i].classList.toggle('on', on)
-                  // 显示模式：把点换成真正的数字，方便核对，也方便拍照留存。
-                  if (revealed) {
-                    kids[i].className = 'bh-dot bh-dot-num' + (on ? ' on' : '')
-                    kids[i].textContent = on ? val.charAt(i) : ''
-                  } else {
-                    kids[i].className = 'bh-dot' + (on ? ' on' : '')
-                    kids[i].textContent = ''
-                  }
-                }
-              }
-              paintDots()
-
-              // 每个密码输入都该能变成明文看一眼——不然记不住的人连截图都拍不了。
-              var eyeBtn = $('bh-eye')
-              if (eyeBtn) {
-                eyeBtn.addEventListener('click', function () {
-                  revealed = !revealed
-                  eyeBtn.classList.toggle('on', revealed)
-                  eyeBtn.setAttribute('aria-pressed', revealed ? 'true' : 'false')
-                  eyeBtn.textContent = revealed ? '隐藏' : '显示'
-                  sound.click()
-                  paintDots()
-                })
-              }
-
-              // 屏幕键盘：按一下加一位，⌫ 退一位。焦点留在隐藏输入框上，
-              // 所以实体键盘和屏幕键盘可以混着用。
-              var keypad = $('bh-keypad')
-              if (keypad) {
-                keypad.addEventListener('click', function (e) {
-                  var btn = e.target.closest ? e.target.closest('.bh-key') : null
-                  if (!btn || btn.id === 'bh-go') return
-                  var key = btn.getAttribute('data-key')
-                  if (!key) return
-                  sound.click()
-                  if (key === 'back') {
-                    input.value = String(input.value || '').slice(0, -1)
-                  } else if (String(input.value || '').length < MAX_PIN) {
-                    input.value = String(input.value || '') + key
-                  }
-                  paintDots()
-                  paintCount()
-                  try { input.focus() } catch (err) {}
-                })
-              }
-
               // 位数直接写出来：就算点被挤出可视区，也能一眼看出输了几位。
               var baseHint = '输入登录密码'
               function paintCount() {
                 var n = String(input.value || '').length
                 hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' 位') : baseHint
-                paintDots()
               }
+              // 眼睛只做一件事：把 input 的 type 在 password / text 之间切。
+              // 数据始终在 input 里，切换不碰它的值，所以不可能“把 PIN 弄没”。
+              var revealed = false
+              var eyeBtn = $('bh-eye')
+              var EYE_OPEN = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' +
+                '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" ' +
+                'stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="2.8" ' +
+                'fill="none" stroke="currentColor" stroke-width="1.6"/></svg>'
+              var EYE_SHUT = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' +
+                '<path d="M3 10s3.4 5 9 5 9-5 9-5" fill="none" stroke="currentColor" ' +
+                'stroke-width="1.6" stroke-linecap="round"/>' +
+                '<path d="M6.5 13.5l-1.2 2.2M12 15v2.4M17.5 13.5l1.2 2.2" fill="none" ' +
+                'stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+              if (eyeBtn) {
+                eyeBtn.addEventListener('click', function () {
+                  revealed = !revealed
+                  input.type = revealed ? 'text' : 'password'
+                  eyeBtn.classList.toggle('on', revealed)
+                  eyeBtn.setAttribute('aria-pressed', revealed ? 'true' : 'false')
+                  eyeBtn.setAttribute('aria-label', revealed ? '隐藏密码' : '显示密码')
+                  eyeBtn.innerHTML = revealed ? EYE_OPEN : EYE_SHUT
+                  sound.click()
+                  try { input.focus() } catch (e) {}
+                })
+              }
+
               input.addEventListener('input', paintCount)
               paintCount()
 
