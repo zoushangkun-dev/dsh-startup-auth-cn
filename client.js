@@ -845,7 +845,9 @@ window.__ModuleLoader__.load({
 
               function submit() {
                 var pin = input.value.trim()
-                if (!/^\d{4,32}$/.test(pin)) return fail('PIN 需要 4-32 位数字')
+                if (!new RegExp('^\\d{' + PIN_MIN + ',' + PIN_MAX + '}$').test(pin)) {
+                  return fail('PIN 需要 ' + PIN_MIN + '-' + PIN_MAX + ' 位数字')
+                }
                 if (offline) { sound.thunk(); return done('offline') }
 
                 if (setup && pendingSetupPin === null) {
@@ -887,12 +889,36 @@ window.__ModuleLoader__.load({
               }
 
               go.addEventListener('click', function () { sound.click(); submit() })
-              // 位数直接写出来：就算点被挤出可视区，也能一眼看出输了几位。
+              // 位数一律从这个函数算，不在别处硬编码任何长度。
+              // 输入框本身是浏览器原生密码框：打字几位就几个点，点由浏览器画，
+              // 我们只负责把"已输入几位 / 最多几位 / 还差几位"算出来给人看。
+              var PIN_MIN = 4
+              var PIN_MAX = 32
               var baseHint = '输入登录密码'
-              function paintCount() {
-                var n = String(input.value || '').length
-                hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' 位') : baseHint
+
+              function pinInfo(value) {
+                var len = String(value || '').length
+                return {
+                  length: len,
+                  tooShort: len > 0 && len < PIN_MIN,
+                  okRange: len >= PIN_MIN && len <= PIN_MAX,
+                  remaining: Math.max(0, PIN_MIN - len),
+                  room: Math.max(0, PIN_MAX - len),
+                }
               }
+
+              function paintPin() {
+                var info = pinInfo(input.value)
+                if (info.length === 0) {
+                  hint.textContent = baseHint + '（' + PIN_MIN + '-' + PIN_MAX + ' 位）'
+                  return info
+                }
+                var tail = info.tooShort ? (' · 还差 ' + info.remaining + ' 位')
+                                         : (' · 已输入 ' + info.length + ' 位')
+                hint.textContent = baseHint + tail
+                return info
+              }
+              var paintCount = paintPin   // 旧名字保留，避免漏改调用点
               // 眼睛只做一件事：把 input 的 type 在 password / text 之间切。
               // 数据始终在 input 里，切换不碰它的值，所以不可能“把 PIN 弄没”。
               var revealed = false

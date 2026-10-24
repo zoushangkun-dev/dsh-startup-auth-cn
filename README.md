@@ -450,3 +450,29 @@ DeepSeek 账号
 - 位数写在提示行（`已输入 9 位`），因为 9 位以上靠肉眼数点容易数错
 
 切换只改 `input.type`，**不碰输入值**，所以不存在"点一下就清空"。
+
+## 长度逻辑集中在一个函数里
+
+没有任何写死的位数。门的提示、校验、上限全部走同一个函数：
+
+```js
+var PIN_MIN = 4, PIN_MAX = 32
+
+function pinInfo(value) {
+  var len = String(value || '').length
+  return {
+    length: len,
+    tooShort: len > 0 && len < PIN_MIN,
+    okRange: len >= PIN_MIN && len <= PIN_MAX,
+    remaining: Math.max(0, PIN_MIN - len),
+    room: Math.max(0, PIN_MAX - len),
+  }
+}
+```
+
+- **点不用我们算**：输入框是原生密码框，打几个字就几个点
+- `paintPin()` 用它更新提示：`还差 2 位` / `已输入 9 位`
+- 提交前用它校验，报错文案里的数字也来自这两个常量
+
+验证覆盖 0 / 2 / 4 / 9 / 32 / 33 位六种情况，全部符合预期。
+要改范围（比如放宽到 64），只改 `PIN_MAX` 一处。
