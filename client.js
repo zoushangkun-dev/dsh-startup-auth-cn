@@ -112,7 +112,6 @@ window.__ModuleLoader__.load({
 
       '.bh-auth{display:none;margin-top:22px;max-width:468px}',
       // 输入框只负责接收键盘和焦点，画面上的点由我们自己画，不会被裁掉。
-      '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
       '.bh-auth-head{display:flex;align-items:center;justify-content:space-between;gap:16px}',
       '.bh-auth-head .bh-auth-hint{margin-bottom:10px}',
       '.bh-dots{display:flex;flex-wrap:wrap;gap:10px;align-items:center;min-height:38px;',
@@ -239,8 +238,6 @@ window.__ModuleLoader__.load({
       '<button class="bh-eye bh-mono" id="bh-eye" type="button" aria-pressed="false"',
       ' title="显示输入的数字，方便核对">显示</button>',
       '</div>',
-      '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
-      ' maxlength="32" autocomplete="off" spellcheck="false" aria-label="登录密码">',
       '<div class="bh-dots" id="bh-dots"></div>',
       '<div class="bh-keypad" id="bh-keypad">',
       '<button class="bh-key" type="button" data-key="1">1</button>',
@@ -835,7 +832,9 @@ window.__ModuleLoader__.load({
             return new Promise(function (resolve) {
               var box = $('bh-auth')
               var hint = $('bh-auth-hint')
-              var input = $('bh-pin')
+              // 不再依赖隐藏 input：它拿不到焦点时键盘输入就丢了，
+              // 而且焦点一动，画面和真实的 value 就会不同步。
+              var pinValue = ''
               var go = $('bh-go')
               var hello = $('bh-hello')
               var errBox = $('bh-auth-err')
@@ -866,8 +865,9 @@ window.__ModuleLoader__.load({
 
               function done(how) {
                 gateClosed = true
+                document.removeEventListener('keydown', onGateKey)
                 box.classList.remove('on')
-                input.value = ''
+                pinValue = ''
                 resolve(how)
               }
 
@@ -883,9 +883,9 @@ window.__ModuleLoader__.load({
 
               function fail(text) {
                 errBox.textContent = text
-                shake(input)
+                shake(dotsBox || box)
                 sound.nope()
-                input.value = ''
+                pinValue = ''
                 input.focus()
               }
 
@@ -894,13 +894,13 @@ window.__ModuleLoader__.load({
               var pendingSetupPin = null
 
               function submit() {
-                var pin = input.value.trim()
+                var pin = String(pinValue || '').trim()
                 if (!/^\d{4,32}$/.test(pin)) return fail('PIN 需要 4-32 位数字')
                 if (offline) { sound.thunk(); return done('offline') }
 
                 if (setup && pendingSetupPin === null) {
                   pendingSetupPin = pin
-                  input.value = ''
+                  pinValue = ''
                   paintDots()
                   paintCount()
                   hint.textContent = '请再输一次这个 PIN，确认没有按错'
@@ -911,7 +911,7 @@ window.__ModuleLoader__.load({
                 }
                 if (setup && pendingSetupPin !== pin) {
                   pendingSetupPin = null
-                  input.value = ''
+                  pinValue = ''
                   paintDots()
                   paintCount()
                   hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-32 位数字）'
@@ -947,7 +947,7 @@ window.__ModuleLoader__.load({
               var revealed = false
               function paintDots() {
                 if (!dotsBox) return
-                var val = String(input.value || '')
+                var val = pinValue
                 var n = val.length
                 var want = Math.min(MAX_PIN, Math.max(4, n))
                 while (dotsBox.children.length < want) {
@@ -998,9 +998,9 @@ window.__ModuleLoader__.load({
                   if (!key) return
                   sound.click()
                   if (key === 'back') {
-                    input.value = String(input.value || '').slice(0, -1)
-                  } else if (String(input.value || '').length < MAX_PIN) {
-                    input.value = String(input.value || '') + key
+                    pinValue = pinValue.slice(0, -1)
+                  } else if (pinValue.length < MAX_PIN) {
+                    pinValue = pinValue + key
                   }
                   paintDots()
                   paintCount()
@@ -1011,16 +1011,34 @@ window.__ModuleLoader__.load({
               // 位数直接写出来：就算点被挤出可视区，也能一眼看出输了几位。
               var baseHint = '输入登录密码'
               function paintCount() {
-                var n = String(input.value || '').length
+                var n = pinValue.length
                 hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' 位') : baseHint
                 paintDots()
               }
-              input.addEventListener('input', paintCount)
+              
               paintCount()
 
-              input.addEventListener('keydown', function (e) {
+              // 门开着的时候，键盘直接生效：数字加一位、退格删一位、回车提交。
+              // 不用先点一下，也不用担心焦点被别的东西抢走。
+              function onGateKey(e) {
+                if (gateClosed) return
+                var tag = (e.target && e.target.tagName) || ''
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return   // 别的输入框不抢
+                if (/^[0-9]$/.test(e.key)) {
+                  e.preventDefault()
+                  if (pinValue.length < MAX_PIN) pinValue += e.key
+                  paintDots(); paintCount()
+                  return
+                }
+                if (e.key === 'Backspace') {
+                  e.preventDefault()
+                  pinValue = pinValue.slice(0, -1)
+                  paintDots(); paintCount()
+                  return
+                }
                 if (e.key === 'Enter') { e.preventDefault(); submit() }
-              })
+              }
+              document.addEventListener('keydown', onGateKey)
 
               // Windows Hello. The system dialog is the only fingerprint path
               // this sensor's driver supports (a user-session WinBio capture
