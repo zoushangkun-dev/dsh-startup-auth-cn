@@ -274,22 +274,6 @@ window.__ModuleLoader__.load({
       '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
       '<div class="bh-recover-hint" id="bh-account-msg"></div>',
       '</div>',
-      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">更改登录密码</button>',
-      '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
-      '<div class="bh-recover-hint" id="bh-pinchange-hint">'
-      + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
-      '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-current" type="password"',
-      ' inputmode="numeric" maxlength="32" autocomplete="current-password"',
-      ' spellcheck="false" placeholder="当前 PIN（刚验证过可留空）" aria-label="当前 PIN"></div>',
-      '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-next" type="password"',
-      ' inputmode="numeric" maxlength="32" autocomplete="new-password"',
-      ' spellcheck="false" placeholder="新 PIN（4-32 位数字）" aria-label="新 PIN"></div>',
-      '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-confirm" type="password"',
-      ' inputmode="numeric" maxlength="32" autocomplete="new-password"',
-      ' spellcheck="false" placeholder="再输一次新 PIN" aria-label="确认新 PIN">',
-      '<button class="sc-btn" id="bh-pc-go" type="button">保存</button></div>',
-      '<div class="bh-recover-hint" id="bh-pc-msg"></div>',
-      '</div>',
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
       '</div>',
@@ -1215,105 +1199,6 @@ window.__ModuleLoader__.load({
                 })
                 totpInput.addEventListener('keydown', function (e) {
                   if (e.key === 'Enter') { e.preventDefault(); submitTotp() }
-                })
-              }
-
-              // Change the PIN from here. The whole reason this exists: the old
-              // Accounts belong to the app, not to us: this only opens the app's
-              // own account UI once the gate is gone. The reason it exists at all
-              // is that people cannot find that entry themselves.
-              var acBtn = $('bh-account'), acBox = $('bh-account-box')
-              var acGo = $('bh-account-go'), acMsg = $('bh-account-msg')
-              var openAccountAfterGate = false
-
-              if (acBtn && acBox) {
-                acBtn.addEventListener('click', function () {
-                  sound.click()
-                  acBox.style.display = acBox.style.display === 'none' ? 'block' : 'none'
-                  if (acBox.style.display === 'block' && acGo) acGo.focus()
-                })
-              }
-              if (acGo) {
-                acGo.addEventListener('click', function () {
-                  sound.click()
-                  openAccountAfterGate = true
-                  if (acMsg) acMsg.textContent = '先完成验证，进入后自动打开账号菜单。'
-                  if (acGo) acGo.disabled = true
-                })
-              }
-
-              // Best effort, but harmless: if none of these match, the person is
-              // already inside and the app is exactly where it started.
-              onGateClosed = function () {
-                if (openAccountAfterGate) openAppAccountUi()
-              }
-
-              function openAppAccountUi() {
-                if (!openAccountAfterGate) return
-                openAccountAfterGate = false
-                var selectors = [
-                  '[data-testid="account"]', '[data-testid="user-menu"]',
-                  '[aria-label*="账号"]', '[aria-label*="帐号"]', '[aria-label*="account" i]',
-                  '.account-chip', '.user-menu', '.avatar',
-                ]
-                var tries = 0
-                var timer = setInterval(function () {
-                  tries += 1
-                  for (var i = 0; i < selectors.length; i += 1) {
-                    var el = document.querySelector(selectors[i])
-                    if (el) {
-                      clearInterval(timer)
-                      try { el.click() } catch (e) {}
-                      return
-                    }
-                  }
-                  if (tries >= 30) clearInterval(timer)   // give up after ~3 s
-                }, 100)
-              }
-
-              // way meant leaving the app, and a half-finished change out there
-              // could lock an account nobody can open.
-              var pcBtn = $('bh-pinchange'), pcBox = $('bh-pinchange-box')
-              var pcCur = $('bh-pc-current'), pcNext = $('bh-pc-next')
-              var pcConfirm = $('bh-pc-confirm'), pcGo = $('bh-pc-go'), pcMsg = $('bh-pc-msg')
-
-              function pcSay(text) { if (pcMsg) pcMsg.textContent = text }
-
-              if (pcBtn && pcBox) {
-                pcBtn.addEventListener('click', function () {
-                  sound.click()
-                  pcBox.style.display = pcBox.style.display === 'none' ? 'block' : 'none'
-                  if (pcBox.style.display === 'block' && pcNext) pcNext.focus()
-                })
-              }
-
-              if (pcGo) {
-                pcGo.addEventListener('click', function () {
-                  sound.click()
-                  var next = String(pcNext && pcNext.value || '').trim()
-                  var confirm = String(pcConfirm && pcConfirm.value || '').trim()
-                  var current = String(pcCur && pcCur.value || '').trim()
-                  if (!/^\d{4,32}$/.test(next)) return pcSay('新 PIN 需要 4-32 位数字')
-                  if (next !== confirm) return pcSay('两次输入不一致')
-                  pcGo.disabled = true
-                  pcSay('正在保存…')
-                  postJSON('/boot-auth/pin/change', { current: current, next: next, confirm: confirm })
-                    .then(function (out) {
-                      pcGo.disabled = false
-                      var data = out.data || {}
-                      if (out.status === 200) {
-                        if (pcNext) pcNext.value = ''
-                        if (pcConfirm) pcConfirm.value = ''
-                        if (pcCur) pcCur.value = ''
-                        sound.tick()
-                        return pcSay('已更新。下次开门用新的 PIN。')
-                      }
-                      if (data.error === '需要先验证身份' || data.error === '当前 PIN 不对') {
-                        if (pcCur) pcCur.focus()
-                      }
-                      pcSay(data.error || ('保存失败（HTTP ' + out.status + '）'))
-                    })
-                    .catch(function () { pcGo.disabled = false; pcSay('宿主没有响应') })
                 })
               }
 
