@@ -111,6 +111,28 @@ window.__ModuleLoader__.load({
       '.bh-row.on{opacity:1;transform:none}',
 
       '.bh-auth{display:none;margin-top:22px;max-width:468px}',
+      // 输入框只负责接收键盘和焦点，画面上的点由我们自己画，不会被裁掉。
+      '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
+      '.bh-dots{display:flex;gap:12px;align-items:center;height:34px;margin-bottom:14px}',
+      '.bh-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(20,20,26,.45);',
+      'transition:background .12s ease,transform .12s ease}',
+      '.bh-dot.on{background:#14141a;border-color:#14141a;transform:scale(1.12)}',
+      '.sc.dark .bh-dot{border-color:rgba(243,238,228,.45)}',
+      '.sc.dark .bh-dot.on{background:#f3eee4;border-color:#f3eee4}',
+      '.bh-keypad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}',
+      '.bh-key{height:52px;border:1px solid rgba(20,20,26,.3);background:#fffdf8;',
+      'color:#14141a;font-family:ui-monospace,Consolas,monospace;font-size:20px;',
+      'border-radius:8px;cursor:pointer;transition:background .12s ease,transform .06s ease}',
+      '.bh-key:hover{background:#f6f1e7}',
+      '.bh-key:active{transform:scale(.96)}',
+      '.bh-key-dim{color:#8d887e}',
+      '.bh-key-go{background:#14141a;color:#f3eee4;border-color:#14141a;font-size:14px;',
+      'font-family:inherit;letter-spacing:.1em}',
+      '.bh-key-go:hover{background:#2a2a33}',
+      '.sc.dark .bh-key{background:#17171d;color:#f3eee4;border-color:rgba(243,238,228,.22)}',
+      '.sc.dark .bh-key:hover{background:#232330}',
+      '.sc.dark .bh-key-go{background:#ff5a1f;color:#14141a;border-color:#ff5a1f}',
+      '.sc.dark .bh-key-go:hover{background:#ff7038}',
       '.bh-auth.on{display:block}',
       '.bh-auth-hint{font-size:11px;letter-spacing:.22em;color:#6c675e;margin-bottom:10px}',
       '.bh-auth-row{display:flex;gap:10px;align-items:stretch}',
@@ -184,22 +206,25 @@ window.__ModuleLoader__.load({
       '<div class="sc-note" id="bh-note"></div>',
       '<div class="bh-rows bh-mono" id="bh-rows"></div>',
       '<div class="bh-auth" id="bh-auth">',
-      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入访问 PIN</div>',
-      '<div class="bh-auth-row">',
-      '<input class="bh-pin" id="bh-pin" type="password" inputmode="numeric" maxlength="8"',
-      ' autocomplete="off" spellcheck="false" aria-label="访问 PIN">',
-      '<button class="sc-btn" id="bh-go" type="button">解锁</button>',
+      '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
+      '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
+      ' maxlength="8" autocomplete="off" spellcheck="false" aria-label="登录密码">',
+      '<div class="bh-dots" id="bh-dots" aria-hidden="true"></div>',
+      '<div class="bh-keypad" id="bh-keypad">',
+      '<button class="bh-key" type="button" data-key="1">1</button>',
+      '<button class="bh-key" type="button" data-key="2">2</button>',
+      '<button class="bh-key" type="button" data-key="3">3</button>',
+      '<button class="bh-key" type="button" data-key="4">4</button>',
+      '<button class="bh-key" type="button" data-key="5">5</button>',
+      '<button class="bh-key" type="button" data-key="6">6</button>',
+      '<button class="bh-key" type="button" data-key="7">7</button>',
+      '<button class="bh-key" type="button" data-key="8">8</button>',
+      '<button class="bh-key" type="button" data-key="9">9</button>',
+      '<button class="bh-key bh-key-dim" type="button" data-key="back">⌫</button>',
+      '<button class="bh-key" type="button" data-key="0">0</button>',
+      '<button class="bh-key bh-key-go" id="bh-go" type="button">解锁</button>',
       '</div>',
       '<button class="bh-hello bh-mono" id="bh-hello" type="button">WINDOWS HELLO · 指纹 / 人脸 / PIN</button>',
-      '<button class="bh-recover bh-mono" id="bh-recover" type="button">PIN 输错被锁了？用验证码跳过</button>',
-      '<div class="bh-recover-box" id="bh-recover-box" style="display:none">',
-      '<div class="bh-recover-hint bh-mono" id="bh-recover-hint"></div>',
-      '<div class="bh-auth-row">',
-      '<input class="bh-pin" id="bh-code" type="text" inputmode="numeric" maxlength="6"',
-      ' autocomplete="one-time-code" spellcheck="false" aria-label="邮箱验证码">',
-      '<button class="sc-btn" id="bh-code-go" type="button">验证</button>',
-      '</div>',
-      '</div>',
       '<button class="bh-recover bh-mono" id="bh-totp-setup" type="button" style="display:none">用验证器 6 位码进入</button>',
       '<div class="bh-recover-box" id="bh-totp-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-totp-hint"></div>',
@@ -217,7 +242,7 @@ window.__ModuleLoader__.load({
       '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
       '<div class="bh-recover-hint" id="bh-account-msg"></div>',
       '</div>',
-      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">修改访问 PIN</button>',
+      '<button class="bh-recover bh-mono" id="bh-pinchange" type="button">更改登录密码</button>',
       '<div class="bh-recover-box" id="bh-pinchange-box" style="display:none">',
       '<div class="bh-recover-hint" id="bh-pinchange-hint">'
       + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
@@ -236,7 +261,6 @@ window.__ModuleLoader__.load({
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-trial bh-mono" id="bh-trial">双入口模式 · 稳定后会把「直接进入」移除</div>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
-      '<div class="bh-alt bh-mono">微信 / QQ <span id="bh-alt-note">未配置</span></div>',
       '</div>',
       '</div>',
       '<div class="sc-ring">',
@@ -753,7 +777,6 @@ window.__ModuleLoader__.load({
               var go = $('bh-go')
               var hello = $('bh-hello')
               var errBox = $('bh-auth-err')
-              var altNote = $('bh-alt-note')
               var direct = $('bh-direct')
               if (!box) return resolve('no-ui')
               // Escape hatch #1: the host-side flag file says the lock is off.
@@ -769,7 +792,7 @@ window.__ModuleLoader__.load({
                 altNote.textContent = '宿主未连接'
                 hello.style.display = 'none'
               } else if (setup) {
-                hint.textContent = '首次启动 · 设置访问 PIN（4-8 位数字）'
+                hint.textContent = '首次启动 · 设置登录密码（4-8 位数字）'
                 hello.style.display = 'none'
               } else if (status.hello === 'unavailable') {
                 hello.style.display = 'none'
@@ -820,7 +843,6 @@ window.__ModuleLoader__.load({
                       // at the code that skips the cooldown.
                       var until = out.data && out.data.lockedUntil
                       var left = until ? Math.max(1, Math.ceil((until - Date.now()) / 1000)) : 30
-                      if (recoverBtn) recoverBtn.classList.add('hot')
                       return fail('输错太多次，' + left + ' 秒后才能再试 · 也可以点「邮箱验证码跳过」')
                     }
                     fail((out.data && out.data.error) || '验证失败')
@@ -829,11 +851,53 @@ window.__ModuleLoader__.load({
               }
 
               go.addEventListener('click', function () { sound.click(); submit() })
+              // 点是我们自己画的：8 个固定槽位，填几个一目了然，不依赖输入框排版。
+              var dotsBox = $('bh-dots')
+              var SLOTS = 8
+              if (dotsBox) {
+                dotsBox.innerHTML = ''
+                for (var di = 0; di < SLOTS; di += 1) {
+                  var d = document.createElement('span')
+                  d.className = 'bh-dot'
+                  dotsBox.appendChild(d)
+                }
+              }
+              function paintDots() {
+                if (!dotsBox) return
+                var n = String(input.value || '').length
+                var kids = dotsBox.children
+                for (var i = 0; i < kids.length; i += 1) {
+                  kids[i].classList.toggle('on', i < n)
+                }
+              }
+
+              // 屏幕键盘：按一下加一位，⌫ 退一位。焦点留在隐藏输入框上，
+              // 所以实体键盘和屏幕键盘可以混着用。
+              var keypad = $('bh-keypad')
+              if (keypad) {
+                keypad.addEventListener('click', function (e) {
+                  var btn = e.target.closest ? e.target.closest('.bh-key') : null
+                  if (!btn || btn.id === 'bh-go') return
+                  var key = btn.getAttribute('data-key')
+                  if (!key) return
+                  sound.click()
+                  if (key === 'back') {
+                    input.value = String(input.value || '').slice(0, -1)
+                  } else if (String(input.value || '').length < SLOTS) {
+                    input.value = String(input.value || '') + key
+                  }
+                  paintDots()
+                  paintCount()
+                  try { input.focus() } catch (err) {}
+                })
+              }
+
               // 位数直接写出来：就算点被挤出可视区，也能一眼看出输了几位。
               var baseHint = '输入登录密码'
               function paintCount() {
                 var n = String(input.value || '').length
                 hint.textContent = n > 0 ? (baseHint + ' · 已输入 ' + n + ' / 8') : baseHint
+                paintDots()
               }
               input.addEventListener('input', paintCount)
               paintCount()
@@ -853,13 +917,11 @@ window.__ModuleLoader__.load({
                 errBox.textContent = ''
                 hello.disabled = true
                 hint.textContent = auto ? '等待指纹 / 人脸…' : '等待 Windows 验证…'
-                if (altNote) altNote.textContent = '系统验证窗已置顶 · 取消则回到 PIN'
                 postJSON('/boot-auth/hello', {}).then(function (out) {
                   helloBusy = false
                   hello.disabled = false
                   if (gateClosed) return
                   if (out.data && out.data.ok) { sound.thunk(); return done('hello') }
-                  if (altNote) altNote.textContent = ''
                   // Only a real rejection is a PIN error. A cancelled or broken
                   // Windows Hello prompt must not clear the PIN field or steal
                   // the focus from whatever the person was typing.
@@ -902,91 +964,11 @@ window.__ModuleLoader__.load({
                   helloAvailability = avail
                   if (avail !== 'Available') {
                     hello.style.display = 'none'
-                    if (altNote) altNote.textContent = '本机 Windows Hello 不可用（' + avail + '）· 用 PIN 进入'
                     return
                   }
                   hello.style.display = ''
                   maybeAutoHello()
                 }).catch(function () {})
-              }
-
-              // Email recovery: the way back in when the PIN is forgotten. The
-              // host mails a 6-digit code (5 minutes, single use, at most 3 an
-              // hour), then the gate asks for a new PIN.
-              var recoverBtn = $('bh-recover')
-              var recoverBox = $('bh-recover-box')
-              var recoverHint = $('bh-recover-hint')
-              var codeInput = $('bh-code')
-              var codeGo = $('bh-code-go')
-
-              function recoveryProblem(data) {
-                var code = data && data.error
-                if (code === 'smtp-not-configured') return '邮件救援没配置完：还缺 SMTP 授权码'
-                if (code === 'recovery-not-configured') return '邮件救援没配置完：没有收件地址'
-                if (code === 'cooldown') return '刚发过一封，等一分钟再试'
-                if (code === 'too-many') return '这一小时申请太多次了，稍后再试'
-                if (code === 'send-failed') return '发送失败：' + ((data && data.detail) || '未知错误')
-                if (code === 'expired') return '验证码过期了，重新申请一封'
-                if (code === 'bad-code') {
-                  return '验证码不对' + (data.remaining != null ? '，还剩 ' + data.remaining + ' 次' : '')
-                }
-                if (code === 'no-active-code') return '还没有申请验证码'
-                if (code === 'too-many-attempts') return '试太多次了，重新申请一封'
-                return '邮件救援不可用'
-              }
-
-              if (recoverBtn) {
-                recoverBtn.addEventListener('click', function () {
-                  sound.click()
-                  if (offline || gateClosed) return
-                  recoverBtn.disabled = true
-                  errBox.textContent = ''
-                  postJSON('/boot-auth/recover/start', {}).then(function (out) {
-                    recoverBtn.disabled = false
-                    if (gateClosed) return
-                    var data = out.data || {}
-                    if (data.ok) {
-                      recoverBox.style.display = ''
-                      recoverHint.textContent = (data.channel === 'sms' ? '短信验证码' : '邮件验证码') +
-                        '已发往 ' + (data.masked || '你的设备') + ' · 5 分钟内有效'
-                      hint.textContent = '输入邮件里的 6 位验证码'
-                      try { codeInput.focus() } catch (e) {}
-                      return
-                    }
-                    fail(recoveryProblem(data))
-                  }).catch(function () {
-                    recoverBtn.disabled = false
-                    if (!gateClosed) fail('宿主没有响应')
-                  })
-                })
-              }
-
-              function verifyCode() {
-                if (offline || gateClosed) return
-                var code = (codeInput.value || '').trim()
-                if (!/^\d{6}$/.test(code)) return fail('验证码是 6 位数字')
-                codeGo.disabled = true
-                errBox.textContent = ''
-                postJSON('/boot-auth/recover/verify', { code: code }).then(function (out) {
-                  codeGo.disabled = false
-                  if (gateClosed) return
-                  var data = out.data || {}
-                  if (data.ok) {
-                    // The code is a way in, nothing more: the PIN stays as it
-                    // was. (Our PIN is a scrypt hash in boot-auth.json; it has
-                    // nothing to do with the Windows Hello PIN.)
-                    sound.thunk()
-                    return done('recover')
-                  }
-                  fail(recoveryProblem(data))
-                }).catch(function () { codeGo.disabled = false; if (!gateClosed) fail('宿主没有响应') })
-              }
-
-              if (codeGo) {
-                codeGo.addEventListener('click', function () { sound.click(); verifyCode() })
-                codeInput.addEventListener('keydown', function (e) {
-                  if (e.key === 'Enter') { e.preventDefault(); verifyCode() }
-                })
               }
 
               // Authenticator app (TOTP): a local secret, no provider at all.
