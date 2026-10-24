@@ -569,6 +569,7 @@ window.__ModuleLoader__.load({
           if (title) title.textContent = titles[what] || ''
           panel.style.display = 'block'
           placePanel()
+          lastAnchorTop = trigger.getBoundingClientRect().top
           if (what === 'launcher') refreshLauncher()
           if (what === 'splash') refreshSplash()
           if (what === 'theme') paintTheme()
@@ -608,8 +609,17 @@ window.__ModuleLoader__.load({
           e.stopPropagation()
           hidePanel()
         })
-        function followTrigger() {
-          if (panel.style.display === 'block') placePanel()
+        // 只在窗口尺寸变化时重新夹一次位置。
+        // 之前还监听了 scroll（capture），结果面板**自己的**滚动条一拖就被当成页面滚动，
+        // 触发重算 → 面板跟着往下跑。这是我自己造的死循环，删掉。
+        var lastAnchorTop = null
+        function followTrigger(event) {
+          if (panel.style.display !== 'block') return
+          if (event && event.target && panel.contains(event.target)) return   // 面板内部滚动，忽略
+          var r = trigger.getBoundingClientRect()
+          if (lastAnchorTop !== null && Math.abs(r.top - lastAnchorTop) < 2) return
+          lastAnchorTop = r.top
+          placePanel()
         }
         window.addEventListener('resize', followTrigger)
         window.addEventListener('scroll', followTrigger, true)
