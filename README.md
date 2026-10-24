@@ -510,3 +510,35 @@ ctx.inject(['settings'], (sctx) => {
 `ERR_MODULE_NOT_FOUND`。所以：先常规 import，失败再从各 profile 的 `node_modules` 里找；
 任何一步失败都只打一行日志，**门本身完全不受影响**。已用假宿主验证过三种情况：
 正常注册、watch 生效、没有 settings 服务的宿主照常启动。
+
+## 为什么设置没能进「内置插件」（查清了）
+
+这个宿主的 settings 服务**没有 `register`**，只有 `describe` 和 `getSnapshot`：
+
+```
+skipped: register failed: sctx.settings.register is not a function
+```
+
+Vision Router 之所以能在设置页里出现，是因为它自带了一整套兼容层
+（`lib/dsh-settings-017-compat.js`、`dsh-contract-compat.js`），把 `configEditor`、
+web 路由、revision registry 全部实现了，而且命名空间写死 `vision-router`，不可复用。
+
+所以结论：**在当前版本上，做不到"和别的插件并列"**，除非逆向那几个未公开接口。
+
+### 现在的做法
+
+应用内不再放任何我们自己的 UI（那块属于 DSH，插进去是局外元素）。
+设置回到它该在的地方——**门本身**：
+
+```
+需要访问许可
+
+输入登录密码 · 已输入 9 位
+● ● ● ● ● ● ● ● ●      👁   解锁 →
+────────────────────────────────
+更改登录 PIN          ← 点开在纸内展开，不是浮层
+直接进入（跳过验证）
+```
+
+点「更改登录 PIN」会在同一页纸上展开三个字段（当前 / 新 / 再输一次），
+就地保存、就地显示结果。外观（深/浅）已并入这张卡片，启动小窗在设置文件里。

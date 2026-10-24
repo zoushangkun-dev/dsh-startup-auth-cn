@@ -124,6 +124,14 @@ window.__ModuleLoader__.load({
       '.sc.dark .bh-eye{color:#a29c92}',
       '.sc.dark .bh-eye:hover{color:#f3eee4}',
       '.sc.dark .bh-eye.on{color:#ff5a1f}',
+      '.bh-link{border:0;background:transparent;color:#6c675e;font-size:11px;letter-spacing:.18em;',
+      'padding:10px 0 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}',
+      '.bh-link:hover{color:#ff5a1f}',
+      '.sc.dark .bh-link{color:#8d887e}',
+      '.sc.dark .bh-link:hover{color:#ff5a1f}',
+      '.bh-inline-form{margin-top:12px;padding-top:12px;border-top:1px solid rgba(20,20,26,.18);max-width:468px}',
+      '.sc.dark .bh-inline-form{border-top-color:rgba(243,238,228,.18)}',
+      '.bh-inline-form .bh-auth-row{margin-bottom:10px}',
       '.bh-auth.on{display:block}',
       '.bh-auth-hint{font-size:11px;letter-spacing:.22em;color:#6c675e;margin-bottom:10px}',
       '.bh-auth-row{display:flex;gap:10px;align-items:stretch}',
@@ -230,6 +238,24 @@ window.__ModuleLoader__.load({
       + '账号的登录与切换由 DSH 自带界面负责。通过验证后进入，会自动帮你打开账号菜单。</div>',
       '<div class="bh-auth-row"><button class="sc-btn" id="bh-account-go" type="button">验证后进入并打开</button></div>',
       '<div class="bh-recover-hint" id="bh-account-msg"></div>',
+      '</div>',
+      '<button class="bh-link bh-mono" id="bh-pinchange" type="button">更改登录 PIN</button>',
+      '<div class="bh-inline-form" id="bh-pinchange-box" style="display:none">',
+      '<div class="bh-auth-hint bh-mono">更改登录 PIN · 需要当前 PIN，改完立刻生效</div>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-pc-current" type="password" inputmode="numeric" maxlength="32"',
+      ' autocomplete="current-password" spellcheck="false" aria-label="当前 PIN" placeholder="当前 PIN">',
+      '</div>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-pc-next" type="password" inputmode="numeric" maxlength="32"',
+      ' autocomplete="new-password" spellcheck="false" aria-label="新 PIN" placeholder="新 PIN（4-32 位）">',
+      '</div>',
+      '<div class="bh-auth-row">',
+      '<input class="bh-pin" id="bh-pc-confirm" type="password" inputmode="numeric" maxlength="32"',
+      ' autocomplete="new-password" spellcheck="false" aria-label="确认新 PIN" placeholder="再输一次新 PIN">',
+      '<button class="sc-btn" id="bh-pc-go" type="button">保存</button>',
+      '</div>',
+      '<div class="bh-auth-hint bh-mono" id="bh-pc-msg"></div>',
       '</div>',
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
@@ -352,347 +378,6 @@ window.__ModuleLoader__.load({
       //
       // 但这块是 React 管的 DOM：只插一次，最多补插三次就当放弃，绝不装定时重排——
       // 之前每 2 秒重挂一次，直接把界面卡死过。
-      function ensureEntryStyles() {
-        if (document.getElementById('bh-entry-style')) return
-        var style = document.createElement('style')
-        style.id = 'bh-entry-style'
-        style.textContent = [
-          '#bh-side{display:flex;align-items:center;gap:8px;padding:7px 10px;margin:2px 6px;',
-          'border-radius:8px;cursor:pointer;color:#8d887e;font-size:12px;',
-          'transition:background .15s ease,color .15s ease}',
-          '#bh-side:hover{background:#1d1d26;color:#f3eee4}',
-          '#bh-side .bh-side-ico{font-size:13px;line-height:1;opacity:.85}',
-          '#bh-menu{position:fixed;z-index:2147483646;display:none;min-width:168px;padding:6px;',
-          'border:1px solid #3a3a46;border-radius:8px;background:#14141a;',
-          'box-shadow:0 12px 34px rgba(0,0,0,.55)}',
-          '#bh-menu button{display:block;width:100%;text-align:left;padding:8px 10px;border:0;',
-          'border-radius:5px;background:transparent;color:#c9c3b8;font-size:12.5px;cursor:pointer}',
-          '#bh-menu button:hover{background:#232330;color:#f3eee4}',
-          '#bh-manage{position:fixed;z-index:2147483647;width:330px;display:none;padding:18px;',
-          'max-height:calc(100vh - 24px);overflow:auto;box-sizing:border-box;',
-          'border:1px solid #3a3a46;border-radius:10px;background:#14141a;',
-          'box-shadow:0 18px 50px rgba(0,0,0,.6);color:#f3eee4}',
-          '#bh-manage h4{margin:0 0 12px;font-size:13px;letter-spacing:.1em;color:#f3eee4}',
-          '#bh-manage .bh-manage-row{margin-bottom:9px}',
-          '#bh-manage .bh-manage-note{font-size:11px;color:#8d887e;line-height:1.65;margin-top:8px}',
-          '#bh-manage .bh-manage-close{position:absolute;top:2px;right:2px;border:0;z-index:5;',
-          'width:32px;height:32px;line-height:30px;text-align:center;border-radius:6px;',
-          'background:transparent;color:#8d887e;font-size:17px;cursor:pointer}',
-          '#bh-manage .bh-manage-close:hover{background:#232330;color:#f3eee4}',
-          '#bh-manage .bh-pin{width:100%;box-sizing:border-box;padding:9px 10px;border-radius:6px;',
-          'border:1px solid #3a3a46;background:#0f0f14;color:#f3eee4;font-size:13px;outline:none}',
-          '#bh-manage .bh-pin:focus{border-color:#ff5a1f}',
-          '#bh-manage .sc-btn{width:100%;padding:9px;border:0;border-radius:6px;background:#ff5a1f;',
-          'color:#14141a;font-weight:600;font-size:13px;cursor:pointer}',
-          '#bh-manage label.bh-toggle{display:flex;align-items:center;gap:9px;font-size:12.5px;',
-          'color:#c9c3b8;cursor:pointer}',
-          '#bh-fab{position:fixed;right:20px;bottom:20px;z-index:2147483645;width:44px;height:44px;',
-          'border-radius:50%;border:1px solid #3a3a46;background:#14141a;color:#8d887e;',
-          'font-size:18px;line-height:42px;text-align:center;cursor:pointer}',
-          '#bh-fab:hover{border-color:#ff5a1f;color:#ff5a1f}',
-        ].join('')
-        document.head.appendChild(style)
-      }
-
-      // 找到「已登录 …」那一行，插到它前面，正好夹在「新版本」和它之间。
-      function insertInSidebar(node) {
-        var all = document.querySelectorAll('div,span,a,button,p')
-        for (var i = 0; i < all.length; i += 1) {
-          var el = all[i]
-          if (el.children && el.children.length) continue
-          var txt = (el.textContent || '').trim()
-          if (!txt || txt.length > 40) continue
-          if (txt.indexOf('已登录') === -1) continue
-          var row = el.parentElement
-          if (!row || !row.parentElement) continue
-          row.parentElement.insertBefore(node, row)
-          return true
-        }
-        return false
-      }
-
-      function mountInAppEntry() {
-        if (document.getElementById('bh-side') || document.getElementById('bh-fab')) return
-        ensureEntryStyles()
-
-        // ---- 面板 ----
-        var panel = document.createElement('div')
-        panel.id = 'bh-manage'
-        panel.innerHTML =
-          '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
-          '<h4 id="bh-m-title">更改登录 PIN</h4>' +
-          '<div class="bh-sec" id="bh-sec-login">' +
-          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password" maxlength="32" placeholder="当前 PIN" /></div>' +
-          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password" maxlength="32" placeholder="新 PIN（4-32 位数字）" /></div>' +
-          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password" maxlength="32" placeholder="再输一次新 PIN" /></div>' +
-          '<div class="bh-manage-row"><label class="bh-toggle"><input type="checkbox" id="bh-m-show" /> ' +
-          '显示输入内容（核对用）</label></div>' +
-          '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
-          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>' +
-          '</div>' +
-          '<div class="bh-sec" id="bh-sec-splash" style="display:none">' +
-          '<label class="bh-toggle"><input type="checkbox" id="bh-splash-toggle" /> 点启动器时显示小窗</label>' +
-          '<div class="bh-manage-note">关掉之后点快捷方式就是直接启动，没有任何界面。<br/>' +
-          '打开时会显示步骤和百分比，方便判断是不是卡住了。</div>' +
-          '</div>' +
-          '<div class="bh-sec" id="bh-sec-theme" style="display:none">' +
-          '<div class="bh-manage-note" style="margin-top:0">门的配色。动画本身一直是深色的。</div>' +
-          '<div class="bh-manage-row" id="bh-theme-row" style="display:flex;gap:6px">' +
-          '<button class="sc-btn bh-theme-btn" data-theme="auto" type="button">跟随系统</button>' +
-          '<button class="sc-btn bh-theme-btn" data-theme="light" type="button">浅色</button>' +
-          '<button class="sc-btn bh-theme-btn" data-theme="dark" type="button">深色</button>' +
-          '</div>' +
-          '<div class="bh-manage-note" id="bh-theme-msg">当前：跟随系统</div>' +
-          '</div>' +
-          '<div class="bh-sec" id="bh-sec-launcher" style="display:none">' +
-          '<div class="bh-manage-note" id="bh-l-state">启动方式：检查中…</div>' +
-          '<div class="bh-manage-row"><button class="sc-btn" id="bh-l-go" type="button">启用桌面启动器</button></div>' +
-          '</div>'
-        document.documentElement.appendChild(panel)
-
-        // ---- 入口：优先侧栏，失败退回右下角 ----
-        var trigger = document.createElement('div')
-        trigger.id = 'bh-side'
-        trigger.innerHTML = '<span class="bh-side-ico">⚙</span><span>设置</span>'
-        trigger.title = '设置：登录 PIN / 启动小窗 / 桌面启动器'
-        var placed = insertInSidebar(trigger)
-        if (!placed) {
-          trigger.remove()
-          trigger = document.createElement('button')
-          trigger.id = 'bh-fab'
-          trigger.type = 'button'
-          trigger.textContent = '⚙'
-          document.documentElement.appendChild(trigger)
-        }
-
-        // ---- 悬停菜单 ----
-        var menu = document.createElement('div')
-        menu.id = 'bh-menu'
-        menu.innerHTML =
-          '<button type="button" data-what="login">更改登录 PIN</button>' +
-          '<button type="button" data-what="theme">外观（深浅色）</button>' +
-          '<button type="button" data-what="splash">启动小窗</button>' +
-          '<button type="button" data-what="launcher">桌面启动器</button>'
-        document.documentElement.appendChild(menu)
-
-        var title = panel.querySelector('#bh-m-title')
-        var secs = {
-          login: panel.querySelector('#bh-sec-login'),
-          theme: panel.querySelector('#bh-sec-theme'),
-          splash: panel.querySelector('#bh-sec-splash'),
-          launcher: panel.querySelector('#bh-sec-launcher'),
-        }
-        var titles = {
-          login: '更改登录 PIN', theme: '外观', splash: '启动小窗', launcher: '桌面启动器',
-        }
-
-        // 面板要“永远整块在屏幕里”。之前只算一次位置，侧栏一滚动、窗口一变，
-        // 面板就跟着那一行跑到屏幕边缘，还被裁掉一半。
-        function placePanel() {
-          var r = trigger.getBoundingClientRect()
-          var pw = panel.offsetWidth || 330
-          var ph = panel.offsetHeight || 320
-          var gap = 12
-          var left = r.right + gap
-          if (left + pw > window.innerWidth - 8) left = r.left - pw - gap   // 右边放不下就翻到左边
-          left = Math.max(8, Math.min(left, window.innerWidth - pw - 8))
-          // 垂直方向跟那一行对齐，但整块钉在视口内
-          var top = r.top - 24
-          top = Math.max(8, Math.min(top, window.innerHeight - ph - 8))
-          panel.style.left = left + 'px'
-          panel.style.top = top + 'px'
-        }
-
-        function showSection(what) {
-          Object.keys(secs).forEach(function (k) {
-            if (secs[k]) secs[k].style.display = k === what ? 'block' : 'none'
-          })
-          if (title) title.textContent = titles[what] || ''
-          panel.style.display = 'block'
-          placePanel()
-          lastAnchorTop = trigger.getBoundingClientRect().top
-          if (what === 'launcher') refreshLauncher()
-          if (what === 'splash') refreshSplash()
-          if (what === 'theme') paintTheme()
-        }
-
-        function placeMenu() {
-          var r = trigger.getBoundingClientRect()
-          menu.style.display = 'block'
-          menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 190)) + 'px'
-          var top = r.top - menu.offsetHeight - 6
-          menu.style.top = (top < 8 ? r.bottom + 6 : top) + 'px'
-        }
-        function hideMenu() { menu.style.display = 'none' }
-        function hidePanel() { panel.style.display = 'none' }
-
-        var hoverTimer = null
-        trigger.addEventListener('mouseenter', function () {
-          if (hoverTimer) clearTimeout(hoverTimer)
-          placeMenu()
-        })
-        trigger.addEventListener('mouseleave', function () {
-          hoverTimer = setTimeout(function () { if (!menu.matches(':hover')) hideMenu() }, 180)
-        })
-        trigger.addEventListener('click', function (e) {
-          e.stopPropagation()
-          if (menu.style.display === 'block') hideMenu()
-          else placeMenu()
-        })
-        menu.addEventListener('mouseleave', hideMenu)
-        menu.querySelectorAll('button').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            hideMenu()
-            showSection(btn.getAttribute('data-what'))
-          })
-        })
-        panel.querySelector('.bh-manage-close').addEventListener('click', function (e) {
-          e.stopPropagation()
-          hidePanel()
-        })
-        // 只在窗口尺寸变化时重新夹一次位置。
-        // 之前还监听了 scroll（capture），结果面板**自己的**滚动条一拖就被当成页面滚动，
-        // 触发重算 → 面板跟着往下跑。这是我自己造的死循环，删掉。
-        var lastAnchorTop = null
-        function followTrigger(event) {
-          if (panel.style.display !== 'block') return
-          if (event && event.target && panel.contains(event.target)) return   // 面板内部滚动，忽略
-          var r = trigger.getBoundingClientRect()
-          if (lastAnchorTop !== null && Math.abs(r.top - lastAnchorTop) < 2) return
-          lastAnchorTop = r.top
-          placePanel()
-        }
-        window.addEventListener('resize', followTrigger)
-        window.addEventListener('scroll', followTrigger, true)
-
-        document.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') { hidePanel(); hideMenu() }
-        })
-        document.addEventListener('mousedown', function (e) {
-          if (panel.style.display !== 'block') return
-          if (panel.contains(e.target) || trigger.contains(e.target)) return
-          hidePanel()
-        }, true)
-
-        // ---- PIN ----
-        var msg = panel.querySelector('#bh-m-msg')
-        function say(text) { if (msg) msg.textContent = text }
-        panel.querySelector('#bh-m-go').addEventListener('click', function () {
-          var cur = String(panel.querySelector('#bh-m-current').value || '').trim()
-          var next = String(panel.querySelector('#bh-m-next').value || '').trim()
-          var confirm_ = String(panel.querySelector('#bh-m-confirm').value || '').trim()
-          if (!/^\d{4,32}$/.test(next)) return say('新 PIN 需要 4-32 位数字')
-          if (next !== confirm_) return say('两次输入不一致')
-          say('正在保存…')
-          postJSON('/boot-auth/pin/change', { current: cur, next: next, confirm: confirm_ })
-            .then(function (out) {
-              var data = out.data || {}
-              if (out.status === 200) {
-                panel.querySelector('#bh-m-current').value = ''
-                panel.querySelector('#bh-m-next').value = ''
-                panel.querySelector('#bh-m-confirm').value = ''
-                return say('已更新，下次开门用新 PIN。')
-              }
-              say(data.error || ('保存失败（HTTP ' + out.status + '）'))
-            })
-            .catch(function () { say('宿主没有响应') })
-        })
-
-        // 三个 PIN 框都能切明文：改之前先看清自己输的什么。
-        var showBox = panel.querySelector('#bh-m-show')
-        if (showBox) {
-          showBox.addEventListener('change', function () {
-            var kind = showBox.checked ? 'text' : 'password'
-            ['#bh-m-current', '#bh-m-next', '#bh-m-confirm'].forEach(function (sel) {
-              var el = panel.querySelector(sel)
-              if (el) el.type = kind
-            })
-          })
-        }
-
-        // ---- 外观：写 localStorage，下次开门立即生效，不必等重启 ----
-        var themeMsg = panel.querySelector('#bh-theme-msg')
-        var themeNames = { auto: '跟随系统', light: '浅色', dark: '深色' }
-        function paintTheme() {
-          var cur = 'auto'
-          try { cur = localStorage.getItem(BH_THEME_KEY) || 'auto' } catch (e) {}
-          if (themeMsg) themeMsg.textContent = '当前：' + (themeNames[cur] || cur)
-          panel.querySelectorAll('.bh-theme-btn').forEach(function (btn) {
-            var on = btn.getAttribute('data-theme') === cur
-            btn.style.opacity = on ? '1' : '.55'
-            btn.style.outline = on ? '2px solid #ff5a1f' : 'none'
-          })
-        }
-        panel.querySelectorAll('.bh-theme-btn').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var what = btn.getAttribute('data-theme')
-            try { localStorage.setItem(BH_THEME_KEY, what) } catch (e) {}
-            postJSON('/boot-auth/settings', { theme: what }).catch(function () {})
-            paintTheme()
-          })
-        })
-        paintTheme()
-
-        // ---- 启动小窗开关 ----
-        var splashBox = panel.querySelector('#bh-splash-toggle')
-        function refreshSplash() {
-          postJSON('/boot-auth/settings', {}).then(function (out) {
-            if (splashBox && out.data) splashBox.checked = out.data.splashEnabled !== false
-          }).catch(function () {})
-        }
-        if (splashBox) {
-          splashBox.addEventListener('change', function () {
-            postJSON('/boot-auth/settings', { splashEnabled: !!splashBox.checked })
-          })
-        }
-
-        // ---- 桌面启动器 ----
-        var lState = panel.querySelector('#bh-l-state')
-        var lGo = panel.querySelector('#bh-l-go')
-        var installed = false
-        function paintLauncher(status) {
-          installed = !!(status && status.installed)
-          if (!lState || !lGo) return
-          if (status && status.available === false) {
-            lState.textContent = '启动方式：这个版本里没有启动器文件'
-            lGo.disabled = true
-            return
-          }
-          lState.textContent = installed
-            ? '启动方式：已启用（桌面有 Launcher 快捷方式）'
-            : '启动方式：未启用（原来的快捷方式照旧）'
-          lGo.textContent = installed ? '卸载启动器' : '启用桌面启动器'
-          lGo.disabled = false
-        }
-        function refreshLauncher() {
-          postJSON('/boot-auth/launcher', { action: 'status' })
-            .then(function (out) { paintLauncher(out.data) })
-            .catch(function () { if (lState) lState.textContent = '启动方式：读不到状态' })
-        }
-        if (lGo) {
-          lGo.addEventListener('click', function () {
-            lGo.disabled = true
-            if (lState) lState.textContent = '启动方式：' + (installed ? '正在卸载…' : '正在创建快捷方式…')
-            postJSON('/boot-auth/launcher', { action: installed ? 'uninstall' : 'install' })
-              .then(function (out) { paintLauncher(out.data) })
-              .catch(function () { if (lState) lState.textContent = '启动方式：宿主没有响应' })
-          })
-        }
-
-        // 只补插三次：React 重渲染会顺手清掉外来节点，补几次够用，多了就是折腾它。
-        var repairs = 0
-        var watcher = setInterval(function () {
-          repairs += 1
-          if (!document.documentElement.contains(trigger) && repairs <= 3) {
-            var again = document.createElement('div')
-            again.id = 'bh-side'
-            again.innerHTML = '<span class="bh-side-ico">⚙</span><span>设置</span>'
-            if (!insertInSidebar(again)) again.remove()
-          }
-          if (repairs >= 3) clearInterval(watcher)
-        }, 4000)
-      }
-
       function finish() {
         if (finished) return
         finished = true
@@ -705,7 +390,6 @@ window.__ModuleLoader__.load({
           try { style.remove() } catch (e) {}
         }, 700)
         // 门的样式被移除了，常驻入口要自己带一份。
-        try { mountInAppEntry() } catch (e) {}
       }
 
       // No auto-dismiss: a gate that removes itself after 90 seconds is just
@@ -1143,6 +827,55 @@ window.__ModuleLoader__.load({
                 })
               }
 
+              // 门上内嵌的「更改登录 PIN」：就在这页纸上展开，不是浮层。
+              var pcLink = $('bh-pinchange')
+              var pcBox = $('bh-pinchange-box')
+              var pcCur = $('bh-pc-current')
+              var pcNext = $('bh-pc-next')
+              var pcConfirm = $('bh-pc-confirm')
+              var pcGo = $('bh-pc-go')
+              var pcMsg = $('bh-pc-msg')
+              function pcSay(text, isError) {
+                if (!pcMsg) return
+                pcMsg.textContent = text
+                pcMsg.style.color = isError ? '#ff2d55' : ''
+              }
+              if (pcLink && pcBox) {
+                pcLink.addEventListener('click', function () {
+                  sound.click()
+                  var open = pcBox.style.display === 'none'
+                  pcBox.style.display = open ? 'block' : 'none'
+                  pcLink.textContent = open ? '收起' : '更改登录 PIN'
+                  if (open) { try { pcCur.focus() } catch (e) {} }
+                })
+              }
+              if (pcGo) {
+                pcGo.addEventListener('click', function () {
+                  var current = String(pcCur.value || '').trim()
+                  var next = String(pcNext.value || '').trim()
+                  var again = String(pcConfirm.value || '').trim()
+                  if (!/^\d{4,32}$/.test(next)) return pcSay('新 PIN 需要 4-32 位数字', true)
+                  if (next !== again) return pcSay('两次输入不一致', true)
+                  if (!current) return pcSay('请先输入当前 PIN', true)
+                  pcGo.disabled = true
+                  pcSay('正在保存…')
+                  postJSON('/boot-auth/pin/change', { current: current, next: next, confirm: again })
+                    .then(function (out) {
+                      pcGo.disabled = false
+                      var data = out.data || {}
+                      if (out.status === 200) {
+                        pcCur.value = ''
+                        pcNext.value = ''
+                        pcConfirm.value = ''
+                        sound.thunk()
+                        return pcSay('已更新，下次开门用新 PIN')
+                      }
+                      pcSay(data.error || ('保存失败（HTTP ' + out.status + '）'), true)
+                    })
+                    .catch(function () { pcGo.disabled = false; pcSay('宿主没有响应', true) })
+                })
+              }
+
               setTimeout(function () { input.focus() }, 120)
             })
           })
@@ -1232,6 +965,7 @@ window.__ModuleLoader__.load({
         finish()
         // The overlay is gone at this point; the app is interactive again.
         setTimeout(function () { if (onGateClosed) onGateClosed() }, 500)
+        // 应用内不再放我们自己的入口：那块 UI 属于 DSH，插进去只会显得突兀。
         setTimeout(function () { try { maybeAnnounce() } catch (e) {} }, 1200)
       }
 
