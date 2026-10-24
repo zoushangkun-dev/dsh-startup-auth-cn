@@ -115,7 +115,8 @@ window.__ModuleLoader__.load({
       '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
       '.bh-auth-head{display:flex;align-items:center;justify-content:space-between;gap:16px}',
       '.bh-auth-head .bh-auth-hint{margin-bottom:10px}',
-      '.bh-dots{display:flex;gap:12px;align-items:center;height:38px;margin-bottom:14px;',
+      '.bh-dots{display:flex;flex-wrap:wrap;gap:10px;align-items:center;min-height:38px;',
+      'max-height:132px;overflow-y:auto;overflow-x:hidden;margin-bottom:14px;',
       'overflow-x:auto;overflow-y:hidden;padding-bottom:2px}',
       '@keyframes bh-slot-in{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}',
       '.bh-dot.bh-new{animation:bh-slot-in .18s ease}',
@@ -192,7 +193,6 @@ window.__ModuleLoader__.load({
       'cursor:pointer;padding:8px 0;text-decoration:underline;text-underline-offset:4px;',
       'text-decoration-color:rgba(20,20,26,.22);transition:color .2s ease}',
       '.bh-direct:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
-      '.bh-trial{margin-top:4px;font-size:9px;letter-spacing:.16em;color:#b3ada2}',
       '.bh-auth-err{margin-top:10px;font-size:11px;letter-spacing:.1em;color:#c2401a;min-height:14px}',
       '.bh-alt{margin-top:12px;font-size:10px;letter-spacing:.2em;color:#a29c92}',
       '.bh-alt span{color:#c0bab0;margin-left:8px}',
@@ -240,7 +240,7 @@ window.__ModuleLoader__.load({
       ' title="显示输入的数字，方便核对">显示</button>',
       '</div>',
       '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
-      ' maxlength="8" autocomplete="off" spellcheck="false" aria-label="登录密码">',
+      ' maxlength="32" autocomplete="off" spellcheck="false" aria-label="登录密码">',
       '<div class="bh-dots" id="bh-dots"></div>',
       '<div class="bh-keypad" id="bh-keypad">',
       '<button class="bh-key" type="button" data-key="1">1</button>',
@@ -279,19 +279,18 @@ window.__ModuleLoader__.load({
       '<div class="bh-recover-hint" id="bh-pinchange-hint">'
       + '刚验证过就不用填当前 PIN；否则先输当前 PIN。改完不会退出登录。</div>',
       '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-current" type="password"',
-      ' inputmode="numeric" maxlength="8" autocomplete="current-password"',
+      ' inputmode="numeric" maxlength="32" autocomplete="current-password"',
       ' spellcheck="false" placeholder="当前 PIN（刚验证过可留空）" aria-label="当前 PIN"></div>',
       '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-next" type="password"',
-      ' inputmode="numeric" maxlength="8" autocomplete="new-password"',
-      ' spellcheck="false" placeholder="新 PIN（4-8 位数字）" aria-label="新 PIN"></div>',
+      ' inputmode="numeric" maxlength="32" autocomplete="new-password"',
+      ' spellcheck="false" placeholder="新 PIN（4-32 位数字）" aria-label="新 PIN"></div>',
       '<div class="bh-auth-row"><input class="bh-pin" id="bh-pc-confirm" type="password"',
-      ' inputmode="numeric" maxlength="8" autocomplete="new-password"',
+      ' inputmode="numeric" maxlength="32" autocomplete="new-password"',
       ' spellcheck="false" placeholder="再输一次新 PIN" aria-label="确认新 PIN">',
       '<button class="sc-btn" id="bh-pc-go" type="button">保存</button></div>',
       '<div class="bh-recover-hint" id="bh-pc-msg"></div>',
       '</div>',
       '<button class="bh-direct bh-mono" id="bh-direct" type="button">直接进入（跳过验证）</button>',
-      '<div class="bh-trial bh-mono" id="bh-trial">双入口模式 · 稳定后会把「直接进入」移除</div>',
       '<div class="bh-auth-err" id="bh-auth-err"></div>',
       '</div>',
       '</div>',
@@ -482,9 +481,9 @@ window.__ModuleLoader__.load({
           '<button class="bh-manage-close" type="button" aria-label="关闭">×</button>' +
           '<h4 id="bh-m-title">更改登录 PIN</h4>' +
           '<div class="bh-sec" id="bh-sec-login">' +
-          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password" maxlength="8" placeholder="当前 PIN" /></div>' +
-          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password" maxlength="8" placeholder="新 PIN（4-8 位数字）" /></div>' +
-          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-current" type="password" maxlength="32" placeholder="当前 PIN" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-next" type="password" maxlength="32" placeholder="新 PIN（4-32 位数字）" /></div>' +
+          '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password" maxlength="32" placeholder="再输一次新 PIN" /></div>' +
           '<div class="bh-manage-row"><label class="bh-toggle"><input type="checkbox" id="bh-m-show" /> ' +
           '显示输入内容（核对用）</label></div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
@@ -631,7 +630,7 @@ window.__ModuleLoader__.load({
           var cur = String(panel.querySelector('#bh-m-current').value || '').trim()
           var next = String(panel.querySelector('#bh-m-next').value || '').trim()
           var confirm_ = String(panel.querySelector('#bh-m-confirm').value || '').trim()
-          if (!/^\d{4,8}$/.test(next)) return say('新 PIN 需要 4-8 位数字')
+          if (!/^\d{4,32}$/.test(next)) return say('新 PIN 需要 4-32 位数字')
           if (next !== confirm_) return say('两次输入不一致')
           say('正在保存…')
           postJSON('/boot-auth/pin/change', { current: cur, next: next, confirm: confirm_ })
@@ -861,7 +860,7 @@ window.__ModuleLoader__.load({
                 altNote.textContent = '宿主未连接'
                 hello.style.display = 'none'
               } else if (setup) {
-                hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-8 位数字）'
+                hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-32 位数字）'
                 hello.style.display = 'none'
               } else if (status.hello === 'unavailable') {
                 hello.style.display = 'none'
@@ -902,7 +901,7 @@ window.__ModuleLoader__.load({
 
               function submit() {
                 var pin = input.value.trim()
-                if (!/^\d{4,8}$/.test(pin)) return fail('PIN 需要 4-8 位数字')
+                if (!/^\d{4,32}$/.test(pin)) return fail('PIN 需要 4-32 位数字')
                 if (offline) { sound.thunk(); return done('offline') }
 
                 if (setup && pendingSetupPin === null) {
@@ -921,7 +920,7 @@ window.__ModuleLoader__.load({
                   input.value = ''
                   paintDots()
                   paintCount()
-                  hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-8 位数字）'
+                  hint.textContent = '为了让这把锁生效，请先为它设置一个 PIN（4-32 位数字）'
                   return fail('两次输入不一致，请重新设置')
                 }
                 if (setup) pendingSetupPin = null
@@ -950,7 +949,7 @@ window.__ModuleLoader__.load({
               // PIN 是 4-8 位，所以点也不该固定 8 个：先给 4 个，输满再多给一格，
               // 到 8 为止。这样 4 位的用户不会以为自己还差 4 位没输完。
               var dotsBox = $('bh-dots')
-              var MAX_PIN = 8
+              var MAX_PIN = 32
               var revealed = false
               function paintDots() {
                 if (!dotsBox) return
@@ -1284,7 +1283,7 @@ window.__ModuleLoader__.load({
                   var next = String(pcNext && pcNext.value || '').trim()
                   var confirm = String(pcConfirm && pcConfirm.value || '').trim()
                   var current = String(pcCur && pcCur.value || '').trim()
-                  if (!/^\d{4,8}$/.test(next)) return pcSay('新 PIN 需要 4-8 位数字')
+                  if (!/^\d{4,32}$/.test(next)) return pcSay('新 PIN 需要 4-32 位数字')
                   if (next !== confirm) return pcSay('两次输入不一致')
                   pcGo.disabled = true
                   pcSay('正在保存…')
