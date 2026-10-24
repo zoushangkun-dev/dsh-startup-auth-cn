@@ -129,21 +129,24 @@ window.__ModuleLoader__.load({
       '.sc.dark .bh-eye.on{background:#f3eee4;color:#14141a;border-color:#f3eee4}',
       // 数字模式：宽度固定给足（原来还是 11px，文字就溢出压到按钮上了），
       // 并且要把「已点亮」的实心背景压掉，否则数字会被自己的圆点盖住。
-      '.bh-dots .bh-dot.bh-dot-num{width:22px;min-width:22px;height:30px;border:0;',
+      '#bh-dots .bh-dot.bh-dot-num{width:22px;min-width:22px;height:32px;border:0 !important;border-radius:0 !important;background:transparent !important;',
       'background:transparent;font-size:21px;font-family:ui-monospace,Consolas,monospace;',
       'text-align:center;line-height:30px;overflow:hidden}',
-      '.bh-dots .bh-dot.bh-dot-num.on{background:transparent;border:0;transform:none}',
+      '.bh-dots .bh-dot.bh-dot-num.on{background:transparent !important;border:0 !important;transform:none}',
       '.bh-dots .bh-dot.bh-dot-num:not(.on){background:transparent;border-bottom:1px solid rgba(20,20,26,.25)}',
       '.sc.dark .bh-dots .bh-dot.bh-dot-num:not(.on){border-bottom-color:rgba(243,238,228,.25)}',
       // 深色主题那条 .sc.dark .bh-dot.on 优先级同样高且排在后头，会把数字盖成白圆，
       // 所以这里要再高一级压回去。
-      '.sc.dark .bh-dots .bh-dot.bh-dot-num.on{background:transparent;border:0;transform:none}',
+      '.sc.dark .bh-dots .bh-dot.bh-dot-num.on{background:transparent !important;border:0 !important;transform:none}',
       '.sc.dark .bh-dots .bh-dot.bh-dot-num{color:#f3eee4}',
-      '.bh-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(20,20,26,.45);',
+      // 用 #bh-dots 提高优先级：应用的全局样式会把 border-radius 抹平，
+      // 结果圆点变成了圆角方块。
+      '#bh-dots .bh-dot{width:12px;height:12px;border-radius:999px !important;box-sizing:border-box;',
+      'border:1px solid rgba(20,20,26,.45) !important;flex:none;',
       'transition:background .12s ease,transform .12s ease}',
-      '.bh-dot.on{background:#14141a;border-color:#14141a;transform:scale(1.12)}',
-      '.sc.dark .bh-dot{border-color:rgba(243,238,228,.45)}',
-      '.sc.dark .bh-dot.on{background:#f3eee4;border-color:#f3eee4}',
+      '#bh-dots .bh-dot.on{background:#14141a !important;border-color:#14141a !important;border-radius:999px !important;transform:scale(1.1)}',
+      '.sc.dark #bh-dots .bh-dot{border-color:rgba(243,238,228,.45)}',
+      '.sc.dark #bh-dots .bh-dot.on{background:#f3eee4 !important;border-color:#f3eee4 !important}',
       '.bh-keypad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}',
       '.bh-key{height:52px;border:1px solid rgba(20,20,26,.3);background:#fffdf8;',
       'color:#14141a;font-family:ui-monospace,Consolas,monospace;font-size:20px;',
