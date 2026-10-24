@@ -113,9 +113,13 @@ window.__ModuleLoader__.load({
       '.bh-auth{display:none;margin-top:22px;max-width:468px}',
       // 输入框只负责接收键盘和焦点，画面上的点由我们自己画，不会被裁掉。
       '.bh-pin-ghost{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
-      '.bh-dots-row{display:flex;align-items:center;gap:22px;margin-bottom:14px}',
-      '.bh-eye{margin-left:8px}',
-      '.bh-dots{display:flex;gap:12px;align-items:center;height:34px}',
+      '.bh-auth-head{display:flex;align-items:center;justify-content:space-between;gap:16px}',
+      '.bh-auth-head .bh-auth-hint{margin-bottom:10px}',
+      '.bh-dots{display:flex;gap:12px;align-items:center;height:38px;margin-bottom:14px;',
+      'overflow-x:auto;overflow-y:hidden;padding-bottom:2px}',
+      '@keyframes bh-slot-in{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}',
+      '.bh-dot.bh-new{animation:bh-slot-in .18s ease}',
+      '.bh-eye{flex:none}',
       '.bh-eye{border:1px solid rgba(20,20,26,.3);background:transparent;color:#6c675e;',
       'font-size:11px;letter-spacing:.16em;padding:5px 10px;border-radius:6px;cursor:pointer}',
       '.bh-eye:hover{color:#14141a;border-color:rgba(20,20,26,.5)}',
@@ -223,14 +227,14 @@ window.__ModuleLoader__.load({
       '<div class="sc-note" id="bh-note"></div>',
       '<div class="bh-rows bh-mono" id="bh-rows"></div>',
       '<div class="bh-auth" id="bh-auth">',
+      '<div class="bh-auth-head">',
       '<div class="bh-auth-hint bh-mono" id="bh-auth-hint">输入登录密码</div>',
-      '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
-      ' maxlength="8" autocomplete="off" spellcheck="false" aria-label="登录密码">',
-      '<div class="bh-dots-row">',
-      '<div class="bh-dots" id="bh-dots"></div>',
       '<button class="bh-eye bh-mono" id="bh-eye" type="button" aria-pressed="false"',
       ' title="显示输入的数字，方便核对">显示</button>',
       '</div>',
+      '<input class="bh-pin bh-pin-ghost" id="bh-pin" type="password" inputmode="numeric"',
+      ' maxlength="8" autocomplete="off" spellcheck="false" aria-label="登录密码">',
+      '<div class="bh-dots" id="bh-dots"></div>',
       '<div class="bh-keypad" id="bh-keypad">',
       '<button class="bh-key" type="button" data-key="1">1</button>',
       '<button class="bh-key" type="button" data-key="2">2</button>',
@@ -948,7 +952,7 @@ window.__ModuleLoader__.load({
                 var want = Math.min(MAX_PIN, Math.max(4, n))
                 while (dotsBox.children.length < want) {
                   var d = document.createElement('span')
-                  d.className = 'bh-dot'
+                  d.className = 'bh-dot bh-new'
                   dotsBox.appendChild(d)
                 }
                 while (dotsBox.children.length > want) {
