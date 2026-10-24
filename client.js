@@ -135,6 +135,10 @@ window.__ModuleLoader__.load({
       '.bh-dots .bh-dot.bh-dot-num.on{background:transparent;border:0;transform:none}',
       '.bh-dots .bh-dot.bh-dot-num:not(.on){background:transparent;border-bottom:1px solid rgba(20,20,26,.25)}',
       '.sc.dark .bh-dots .bh-dot.bh-dot-num:not(.on){border-bottom-color:rgba(243,238,228,.25)}',
+      // 深色主题那条 .sc.dark .bh-dot.on 优先级同样高且排在后头，会把数字盖成白圆，
+      // 所以这里要再高一级压回去。
+      '.sc.dark .bh-dots .bh-dot.bh-dot-num.on{background:transparent;border:0;transform:none}',
+      '.sc.dark .bh-dots .bh-dot.bh-dot-num{color:#f3eee4}',
       '.bh-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(20,20,26,.45);',
       'transition:background .12s ease,transform .12s ease}',
       '.bh-dot.on{background:#14141a;border-color:#14141a;transform:scale(1.12)}',
