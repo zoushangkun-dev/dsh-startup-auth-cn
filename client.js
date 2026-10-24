@@ -339,6 +339,7 @@ window.__ModuleLoader__.load({
             '#bh-manage .bh-pin{width:100%;box-sizing:border-box}',
             '#bh-manage .sc-btn{width:100%}',
             '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
+            '#bh-manage .bh-manage-sep{height:1px;background:#2c2c38;margin:14px 0 12px}',
           ].join('')
           document.head.appendChild(own)
         }
@@ -381,14 +382,56 @@ window.__ModuleLoader__.load({
           '<div class="bh-manage-row"><input class="bh-pin" id="bh-m-confirm" type="password"' +
           ' inputmode="numeric" maxlength="8" placeholder="再输一次新 PIN" /></div>' +
           '<div class="bh-manage-row"><button class="sc-btn" id="bh-m-go" type="button">保存</button></div>' +
-          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>'
+          '<div class="bh-manage-note" id="bh-m-msg">改完不会退出登录，下次开门用新 PIN。</div>' +
+          '<div class="bh-manage-sep"></div>' +
+          '<div class="bh-manage-note" id="bh-l-state">启动方式：检查中…</div>' +
+          '<div class="bh-manage-row"><button class="sc-btn" id="bh-l-go" type="button">'
+          + '启用桌面启动器</button></div>'
         document.documentElement.appendChild(panel)
+
+        // 启动器是选装件：只查状态和装/卸，默认不动系统。
+        var lState = panel.querySelector('#bh-l-state')
+        var lGo = panel.querySelector('#bh-l-go')
+        var launcherInstalled = false
+
+        function paintLauncher(status) {
+          launcherInstalled = !!(status && status.installed)
+          if (!lState || !lGo) return
+          if (status && status.available === false) {
+            lState.textContent = '启动方式：这个版本里没有启动器文件'
+            lGo.disabled = true
+            return
+          }
+          lState.textContent = launcherInstalled
+            ? '启动方式：已启用（桌面有 Launcher 快捷方式）'
+            : '启动方式：未启用（原来的快捷方式照旧）'
+          lGo.textContent = launcherInstalled ? '卸载启动器' : '启用桌面启动器'
+          lGo.disabled = false
+        }
+
+        function refreshLauncher() {
+          postJSON('/boot-auth/launcher', { action: 'status' })
+            .then(function (out) { paintLauncher(out.data) })
+            .catch(function () { if (lState) lState.textContent = '启动方式：读不到状态' })
+        }
+
+        if (lGo) {
+          lGo.addEventListener('click', function () {
+            lGo.disabled = true
+            if (lState) lState.textContent = '启动方式：' + (launcherInstalled ? '正在卸载…' : '正在创建快捷方式…')
+            postJSON('/boot-auth/launcher', { action: launcherInstalled ? 'uninstall' : 'install' })
+              .then(function (out) { paintLauncher(out.data) })
+              .catch(function () { if (lState) lState.textContent = '启动方式：宿主没有响应' })
+          })
+        }
 
         var msg = panel.querySelector('#bh-m-msg')
         function say(text) { if (msg) msg.textContent = text }
 
         fab.addEventListener('click', function () {
-          panel.style.display = panel.style.display === 'block' ? 'none' : 'block'
+          var showing = panel.style.display !== 'block'
+          panel.style.display = showing ? 'block' : 'none'
+          if (showing) refreshLauncher()
         })
         function closePanel() { panel.style.display = 'none' }
 

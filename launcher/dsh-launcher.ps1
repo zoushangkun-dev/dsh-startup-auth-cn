@@ -40,6 +40,19 @@ try {
   # Already running with a window: bring it up instead of starting a second one.
   $existing = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue |
     Where-Object { $_.MainWindowHandle -ne 0 })
+  if ($existing.Count -eq 0 -and -not $Demo) {
+    # 没有窗口但有进程：通常是上次异常退出留下的残留，它占着单实例锁，
+    # 新进程一启动就被挡回来并立刻退出——这正是“进度条跑满、窗口不来”。
+    $stale = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)
+    if ($stale.Count -gt 0) {
+      Write-Log ('stale windowless instances: ' + $stale.Count + ', cleaning')
+      foreach ($p in $stale) {
+        try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch { }
+      }
+      Start-Sleep -Milliseconds 600
+      Write-Log 'stale instances cleared'
+    }
+  }
   if ($existing.Count -gt 0 -and -not $Demo) {
     Write-Log ('already running, pid=' + $existing[0].Id + ', focusing')
     $sig = @"
