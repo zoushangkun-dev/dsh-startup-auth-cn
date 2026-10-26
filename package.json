@@ -1,43 +1,45 @@
 {
-  "name": "dsh-boot-handmade",
-  "version": "0.4.11",
-  "description": "Hand-built cold-start gate for DeepSeek Harness: six-act boot animation, PIN + Windows Hello + authenticator-code unlock, local-only and dependency-free",
-  "type": "module",
-  "main": "lib/index.js",
-  "exports": {
-    ".": "./lib/index.js",
-    "./client": "./client.js"
-  },
-  "files": [
-    "lib",
-    "client.js",
-    "cordis.patch.yml"
-  ],
-  "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    },
-    "client": {
-      "inject": [],
-      "platform": "web",
-      "immediately": true
-    }
-  },
-  "license": "MIT",
-  "keywords": [
-    "dsh",
-    "deepseek-harness",
-    "boot-animation",
-    "app-lock",
-    "totp",
-    "windows-hello"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/zoushangkun-dev/dsh-startup-auth-cn.git"
-  },
-  "homepage": "https://github.com/zoushangkun-dev/dsh-startup-auth-cn#readme",
-  "bugs": {
-    "url": "https://github.com/zoushangkun-dev/dsh-startup-auth-cn/issues"
-  }
+    "name":  "dsh-boot-handmade",
+    "version":  "0.4.12",
+    "description":  "Hand-built cold-start gate for DeepSeek Harness: six-act boot animation, PIN + Windows Hello + authenticator-code unlock, local-only and dependency-free",
+    "type":  "module",
+    "main":  "lib/index.js",
+    "exports":  {
+                    ".":  "./lib/index.js",
+                    "./client":  "./client.js"
+                },
+    "files":  [
+                  "lib",
+                  "client.js",
+                  "cordis.patch.yml"
+              ],
+    "dsh":  {
+                "bundle":  {
+                               "patch":  "./cordis.patch.yml"
+                           },
+                "client":  {
+                               "inject":  [
+
+                                          ],
+                               "platform":  "web",
+                               "immediately":  true
+                           }
+            },
+    "license":  "MIT",
+    "keywords":  [
+                     "dsh",
+                     "deepseek-harness",
+                     "boot-animation",
+                     "app-lock",
+                     "totp",
+                     "windows-hello"
+                 ],
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/zoushangkun-dev/dsh-startup-auth-cn.git"
+                   },
+    "homepage":  "https://github.com/zoushangkun-dev/dsh-startup-auth-cn#readme",
+    "bugs":  {
+                 "url":  "https://github.com/zoushangkun-dev/dsh-startup-auth-cn/issues"
+             }
 }

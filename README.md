@@ -25,7 +25,7 @@
 - **指纹自愈**：采样中途关窗会让 `CredentialUIBroker` 卡住，下一次采不到样。
   现在失败后自动杀掉 broker 重试一次。
 - **账号**：门上新增「DeepSeek 账号」，验证后自动打开应用自带的账号菜单。
-- **去掉没做出来的东西**：邮件验证码、微信 / QQ 入口从门上移除。
+- **去掉没做出来的东西**：邮件验证码、微信 / QQ 入口从门上移除（邮件救援整套已在 0.4.12 删除，见下）。
 
 ### 0.4.0
 
@@ -82,7 +82,6 @@ Windows 用户也可以直接双击仓库里的 `安装.cmd`（会先检查客�
 |---|---|
 | `boot-auth.json` | PIN 的 scrypt 哈希 + salt（不存明文） |
 | `boot-totp.json` | TOTP 密钥 + 备用码的 scrypt 哈希 |
-| `boot-recover.json` | 可选的邮件救援配置（收件地址 + SMTP 授权码） |
 
 ## 逃生口与回滚
 
@@ -127,8 +126,7 @@ A：目前界面文案是中文，代码里没有硬编码依赖，欢迎 PR。
 - 宿主半：一个 cordis 插件，注册 `/boot-auth/*` 路由
 - PIN / 备用码：`crypto.scryptSync` + 随机盐
 - TOTP：HMAC-SHA1，与 RFC 6238 官方向量对齐（仓库内 `tools/test_totp.mjs` 可复跑）
-- 邮件救援：调用 Windows 自带 `curl.exe` 走 SMTPS，不引任何依赖
-- 测试：`tools/test_boot_auth.mjs`（宿主 10 项）、`tools/test_totp.mjs`（24 项）、`tools/test_recovery.mjs`（14 项）
+- 测试：`tools/test_boot_auth.mjs`、`test_totp.mjs`、`test_pin_change.mjs`、`test_settings_ui.mjs`、`test_settings_section.mjs`
 
 ## 已知限制
 
@@ -557,3 +555,18 @@ web 路由、revision registry 全部实现了，而且命名空间写死 `visio
 通过后才显示 PIN 表单和小窗开关。验证有效 5 分钟，改完即作废。
 
 接口层同样强制：`/boot-auth/pin/change` 没有 step-up 令牌直接 401，连当前 PIN 都不看。
+
+
+## 为什么没有邮件救援（0.4.12 删掉）
+
+曾经做过一条"忘记 PIN 就发邮件验证码"的路，用的是本地 SMTP（126 邮箱授权码）。
+后来整套删掉了，原因不是难做，是**可靠性不够**：
+
+1. 邮件能不能发出去，取决于邮箱服务商当天的心情、端口是否被封、授权码是否过期。
+   一条"救援通道"，只有在最坏的时候才被使用；它却建立在最不可控的一环上。
+2. 配置过程本身要求用户去网页版生成授权码——对普通用户是一道门槛，
+   对想进门的人也未必拦得住。
+3. 安全模型上，它把门的安全性降到了邮箱的安全性：**能进邮箱的人就能重置这把锁**。
+
+所以决定留到能自建发信服务（有自己的域名、SPF/DKIM、退信处理）时再做。
+在那之前，可靠的三条路是：PIN、Windows Hello、验证器 6 位码 + 8 个一次性备份码。
