@@ -1,0 +1,67 @@
+# 新 issue 自动回一条，不用维护者在线。
+#
+# 理由：维护者在上课/睡觉时，问"门打不开"的人只会干等，然后换插件。
+# 这条机器回复不解决所有问题，但能立刻给出三条最可能的解法 + 自助排障入口，
+# 并且把"请贴诊断信息"这件事在第一时间说清楚，省掉一轮来回。
+#
+# 它跑在 GitHub 的服务器上，不需要任何 secret（用仓库自带的 GITHUB_TOKEN），
+# 也不依赖维护者的电脑开着。
+
+name: issue-triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 自动回复（每个 issue 只发一次）
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              '谢谢报告。**维护者不一定在线**，所以先给你三条最常见的解法，可能不用等。',
+              '',
+              '### 1. 装好了但启动没变化',
+              '插件没加载。完全重启应用（不是刷新页面），并检查',
+              '`~/.dsh/profiles/desktop/node_modules` 里有没有 `dsh-boot-handmade`。',
+              '',
+              '### 2. 门出现了但进不去',
+              '- 从没设过 PIN → 门上会写「请先为它设置一个 PIN」，输两遍',
+              '- 忘了 PIN → 用验证器 6 位码，或 8 个一次性备份码',
+              '- 都没有 → 双击插件目录里的 `急救绕过.cmd`（删掉 `~/.dsh/boot-auth-bypass` 即恢复上锁）',
+              '',
+              '### 3. 指纹点了没反应',
+              '`taskkill /F /IM CredentialUIBroker.exe` 后重试。',
+              '',
+              '---',
+              '',
+              '完整的对号入座在 **[排障.md](https://github.com/zoushangkun-dev/dsh-startup-auth-cn/blob/main/排障.md)**。',
+              '',
+              '如果还需要我们看：打开 `设置.cmd` → 页面底部「复制诊断信息」→ 粘到这条 issue 下面。',
+              '那段信息已自动脱敏，**不含 PIN、验证器密钥或备份码** —— 这些也请不要贴进来。',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+            // 打标签失败不该让整个 workflow 变红
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['needs-info'],
+              });
+            } catch (e) {
+              core.info('label skipped: ' + e.message);
+            }
