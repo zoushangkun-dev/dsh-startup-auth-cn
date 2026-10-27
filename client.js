@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════
+//  改动前必读：plugins/dsh-boot-handmade/维护须知.md
+//
+//  这份文件最容易复发的四类 bug（都修过、都复发过）：
+//   1. 不要往 DSH 的 React DOM 里插节点 —— 会整窗卡死，且有定时守护时变死循环。
+//   2. 不要用"屏幕外隐藏 input + 焦点"承载 PIN —— 输入会丢，切换显示像清空。
+//   3. 密码框不要用 letter-spacing —— 末尾的点会被挤出可视区且不滚动。
+//   4. 深色主题规则必须 `.sc.dark` 前缀 + 足够特异性 —— 曾把数字盖成白圆。
+//
+//  视觉：主文字 #f3eee4 / 次要 #8d887e / 强调 #ff5a1f / 危险 #ff2d55，只有这四种。
+// ═══════════════════════════════════════════════════════════════════════════
 // Browser half of dsh-boot-handmade: a cold-start animation drawn with DOM + CSS
 // + SVG (no video, no bitmaps, no external assets), with a working app-lock gate.
 //
