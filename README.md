@@ -126,7 +126,7 @@ A：目前界面文案是中文，代码里没有硬编码依赖，欢迎 PR。
 - 宿主半：一个 cordis 插件，注册 `/boot-auth/*` 路由
 - PIN / 备用码：`crypto.scryptSync` + 随机盐
 - TOTP：HMAC-SHA1，与 RFC 6238 官方向量对齐（仓库内 `tools/test_totp.mjs` 可复跑）
-- 测试：`tools/test_boot_auth.mjs`、`test_totp.mjs`、`test_pin_change.mjs`、`test_settings_ui.mjs`、`test_settings_section.mjs`
+- 测试：`tools/test_boot_auth.mjs`、`test_totp.mjs`、`test_pin_change.mjs`、`test_settings_ui.mjs`、`test_settings_section.mjs`、`test_settings_flows.mjs`
 
 ## 已知限制
 
