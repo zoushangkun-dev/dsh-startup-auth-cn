@@ -208,7 +208,15 @@ window.__ModuleLoader__.load({
       '.bh-auth-err{margin-top:10px;font-size:11px;letter-spacing:.1em;color:#c2401a;min-height:14px}',
       '.bh-alt{margin-top:12px;font-size:10px;letter-spacing:.2em;color:#a29c92}',
       '.bh-alt span{color:#c0bab0;margin-left:8px}',
-      '.bh-shake{animation:bh-shake .34s ease}',
+            // 门上的「设置」入口：低调，但深浅色都要看得见、点得着。
+      '.bh-settings{margin-left:auto;appearance:none;border:1px solid rgba(20,20,26,.22);',
+      'border-radius:6px;background:transparent;color:#5d584f;font-family:inherit;',
+      'font-size:10px;letter-spacing:.18em;padding:6px 12px;cursor:pointer;',
+      'transition:border-color .18s ease,color .18s ease}',
+      '.bh-settings:hover{border-color:var(--bh-accent);color:var(--bh-accent)}',
+      '.sc.dark .bh-settings{border-color:rgba(243,238,228,.18);color:#b8b2a6}',
+      '.sc.dark .bh-settings:hover{border-color:var(--bh-accent);color:var(--bh-accent)}',
+'.bh-shake{animation:bh-shake .34s ease}',
       '@keyframes bh-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}',
       '50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}',
       '50%{text-shadow:-3px 0 #ff2d55,3px 0 #00e0ff;transform:translateX(2px)}',
@@ -309,6 +317,9 @@ window.__ModuleLoader__.load({
       '</div>',
       '<div class="sc-foot bh-mono">',
       '<div class="sc-status" id="bh-status">00 / 08 | STANDBY</div>',
+      // 设置入口：这是唯一的入口（之前只能双击设置.cmd，很多人找不到）。
+      // 它只打开同一个页面；设置页自己会再验一次身份，不绕过这道门。
+      '<button class="bh-settings" id="bh-settings" type="button">设置</button>',
       '<button class="sc-btn" id="bh-btn" type="button" style="display:none">继续<em>ENTER</em></button>',
       '</div>',
       '</div>'
@@ -951,6 +962,15 @@ window.__ModuleLoader__.load({
             applyAccent(data.accent)
           }
         } catch (e) { /* 读不到就用本地记录，不影响开门 */ }
+      }
+
+      // 「设置」：在新窗口打开插件自托管的设置页。
+      // 不注入宿主 DOM、不改应用状态，只是开一个本地网页。
+      var settingsBtn = document.getElementById('bh-settings')
+      if (settingsBtn) {
+        settingsBtn.addEventListener('click', function () {
+          try { window.open('/boot-auth/ui', '_blank') } catch (e) { /* 被拦就什么都不做 */ }
+        })
       }
 
       async function run() {
