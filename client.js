@@ -7,7 +7,7 @@
 //   3. 密码框不要用 letter-spacing —— 末尾的点会被挤出可视区且不滚动。
 //   4. 深色主题规则必须 `.sc.dark` 前缀 + 足够特异性 —— 曾把数字盖成白圆。
 //
-//  视觉：主文字 #f3eee4 / 次要 #8d887e / 强调 #ff5a1f / 危险 #ff2d55，只有这四种。
+//  视觉：主文字 #f3eee4 / 次要 #8d887e / 强调 var(--bh-accent) / 危险 #ff2d55，只有这四种。
 // ═══════════════════════════════════════════════════════════════════════════
 // Browser half of dsh-boot-handmade: a cold-start animation drawn with DOM + CSS
 // + SVG (no video, no bitmaps, no external assets), with a working app-lock gate.
@@ -49,8 +49,8 @@ window.__ModuleLoader__.load({
       '.sa-mark{width:132px;height:132px;overflow:visible}',
       '.sa-path,.sa-path2{fill:none;stroke:#f3eee4;stroke-width:2.4;stroke-linecap:round;',
       'stroke-dasharray:260;stroke-dashoffset:260;animation:bh-draw 1.15s cubic-bezier(.4,0,.2,1) forwards}',
-      '.sa-path2{animation-delay:.18s;stroke:#ff5a1f}',
-      '.sa-dot{fill:#ff5a1f;opacity:0;animation:bh-pop .4s .95s ease forwards}',
+      '.sa-path2{animation-delay:.18s;stroke:var(--bh-accent)}',
+      '.sa-dot{fill:var(--bh-accent);opacity:0;animation:bh-pop .4s .95s ease forwards}',
       '@keyframes bh-draw{to{stroke-dashoffset:0}}',
       '@keyframes bh-pop{to{opacity:1}}',
       '.sa-word{margin-top:6px;font-size:30px;letter-spacing:.62em;text-indent:.62em;',
@@ -60,7 +60,7 @@ window.__ModuleLoader__.load({
       'opacity:0;animation:bh-focus .8s .85s ease forwards}',
       '.sa-foot{position:absolute;left:50%;bottom:56px;width:min(520px,72vw);transform:translateX(-50%)}',
       '.sa-bar{height:1px;background:rgba(243,238,228,.16);overflow:hidden}',
-      '.sa-bar i{display:block;height:100%;width:0;background:#ff5a1f;',
+      '.sa-bar i{display:block;height:100%;width:0;background:var(--bh-accent);',
       'animation:bh-fill 2.1s .15s cubic-bezier(.3,.9,.2,1) forwards}',
       '@keyframes bh-fill{to{width:100%}}',
       '.sa-meta{display:flex;justify-content:space-between;margin-top:10px;font-size:10px;',
@@ -80,7 +80,7 @@ window.__ModuleLoader__.load({
       '.sc.dark .sc-note{color:#a29c92}',
       '.sc.dark .bh-auth-hint{color:#8d887e}',
       '.sc.dark .bh-pin{border-color:rgba(243,238,228,.32);background:transparent;color:#f3eee4}',
-      '.sc.dark .bh-pin:focus{border-bottom-color:#ff5a1f}',
+      '.sc.dark .bh-pin:focus{border-bottom-color:var(--bh-accent)}',
       '.sc.dark .bh-pin::placeholder{color:#6c675e}',
       '.sc.dark .bh-hello{color:#c9c3b8;border-color:rgba(243,238,228,.18)}',
       '.sc.dark .bh-recover{color:#b8b2a6}',
@@ -89,6 +89,13 @@ window.__ModuleLoader__.load({
       '.sc.dark .bh-rows{color:#8d887e}',
       '.sc.dark .bh-ring{border-color:rgba(243,238,228,.18)}',
       '.sc{background:#f3eee4;color:#14141a}',
+      // 强调色变量：整个门只有这三档，样式里不再出现写死的颜色。
+      // 默认橙；设置页选了别的颜色时，applyAccent() 给 .sc 加类切换。
+      '.sc{--bh-accent:#ff5a1f;--bh-accent-rgb:255,90,31}',
+      '.sc.accent-deepseek{--bh-accent:#4d6bfe;--bh-accent-rgb:77,107,254}',
+      // 石墨黑在深色底上必须提亮，否则按钮和背景糊在一起
+      '.sc.accent-graphite{--bh-accent:#8b8b96;--bh-accent-rgb:139,139,150}',
+      '.sc.dark .sc-btn{color:#0d0d10}',
       '.sc::before{content:\'\';position:absolute;inset:0;pointer-events:none;',
       'background-image:linear-gradient(rgba(20,20,26,.055) 1px,transparent 1px),',
       'linear-gradient(90deg,rgba(20,20,26,.055) 1px,transparent 1px);background-size:48px 48px}',
@@ -99,12 +106,12 @@ window.__ModuleLoader__.load({
       'writing-mode:vertical-rl;font-size:10px;letter-spacing:.42em;color:#8d887e}',
       '.sc-main{position:absolute;left:104px;top:50%;transform:translateY(-56%);max-width:56%}',
       '.sc-zh{font-size:clamp(28px,4.4vw,52px);font-weight:600;letter-spacing:.06em;line-height:1.25}',
-      '.sc-en{margin-top:14px;font-size:12px;letter-spacing:.34em;color:#ff5a1f;min-height:16px}',
+      '.sc-en{margin-top:14px;font-size:12px;letter-spacing:.34em;color:var(--bh-accent);min-height:16px}',
       '.sc-note{margin-top:16px;font-size:12px;letter-spacing:.06em;color:#6c675e;min-height:18px}',
       '.sc-ring{position:absolute;right:96px;top:50%;transform:translateY(-50%);width:170px;height:170px}',
       '.sc-ring svg{width:100%;height:100%;transform:rotate(-90deg)}',
       '.ring-bg{fill:none;stroke:rgba(20,20,26,.14);stroke-width:2}',
-      '.ring-fg{fill:none;stroke:#ff5a1f;stroke-width:2;stroke-linecap:round;',
+      '.ring-fg{fill:none;stroke:var(--bh-accent);stroke-width:2;stroke-linecap:round;',
       'stroke-dasharray:339.29;stroke-dashoffset:339.29;transition:stroke-dashoffset .5s ease}',
       '.ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;',
       'font-size:26px;letter-spacing:.06em;font-weight:600}',
@@ -112,13 +119,13 @@ window.__ModuleLoader__.load({
       'align-items:center;justify-content:space-between;gap:24px}',
       '.sc-status{font-size:11px;letter-spacing:.24em;color:#3a3a44}',
       // 主操作按钮：实心橙色，和输入框同高。之前的"下划线文字"看不出这是按钮。
-      '.sc-btn{appearance:none;border:1px solid #ff5a1f;border-radius:10px;background:#ff5a1f;',
+      '.sc-btn{appearance:none;border:1px solid var(--bh-accent);border-radius:10px;background:var(--bh-accent);',
       'color:#14141a;padding:0 26px;font-size:14px;font-weight:600;letter-spacing:.18em;',
       'cursor:pointer;font-family:inherit;min-height:56px;',
       'transition:background .18s ease,box-shadow .18s ease,transform .06s ease}',
-      '.sc-btn:hover{background:#ff7038;color:#14141a;box-shadow:0 6px 18px rgba(255,90,31,.28)}',
+      '.sc-btn:hover{background:#ff7038;color:#14141a;box-shadow:0 6px 18px rgba(var(--bh-accent-rgb),.28)}',
       '.sc-btn:active{transform:translateY(1px)}',
-      '.sc.dark .sc-btn{background:#ff5a1f;color:#14141a;border-color:#ff5a1f}',
+      '.sc.dark .sc-btn{background:var(--bh-accent);color:#14141a;border-color:var(--bh-accent)}',
       '.sc.dark .sc-btn:hover{background:#ff7038;color:#14141a}',
       '.sc-btn em{font-style:normal;font-size:10px;opacity:.55;margin-left:10px;letter-spacing:.2em}',
       '.sc-btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}',
@@ -133,29 +140,29 @@ window.__ModuleLoader__.load({
       'border:1px solid rgba(20,20,26,.28);border-radius:8px;background:#fffdf8;color:#5d584f;',
       'cursor:pointer;padding:0;transition:color .18s ease,border-color .18s ease,background .18s ease}',
       '.bh-eye:hover{color:#14141a;border-color:rgba(20,20,26,.55)}',
-      '.bh-eye.on{color:#ff5a1f;border-color:#ff5a1f;background:#fff7f2}',
+      '.bh-eye.on{color:var(--bh-accent);border-color:var(--bh-accent);background:#fff7f2}',
       '.sc.dark .bh-eye{border-color:rgba(243,238,228,.28);background:#1c1c24;color:#c9c3b8}',
       '.sc.dark .bh-eye:hover{color:#f3eee4;border-color:rgba(243,238,228,.5)}',
-      '.sc.dark .bh-eye.on{color:#ff5a1f;border-color:#ff5a1f;background:#241a16}',
+      '.sc.dark .bh-eye.on{color:var(--bh-accent);border-color:var(--bh-accent);background:#241a16}',
             // 次级入口统一成一行：之前一个靠左、两个居中，看起来像没做完。
       '.bh-sec-row{display:flex;gap:10px;align-items:stretch;margin-top:12px}',
       '.bh-sec-row > .bh-link{flex:1;margin:0;padding:11px 8px;border:1px solid rgba(20,20,26,.18);',
       'border-radius:8px;background:transparent;text-decoration:none;text-align:center;',
       'font-size:11px;letter-spacing:.14em;color:#5d584f;transition:border-color .18s ease,color .18s ease,background .18s ease}',
-      '.bh-sec-row > .bh-link:hover{border-color:#ff5a1f;color:#ff5a1f;background:#fff7f2}',
+      '.bh-sec-row > .bh-link:hover{border-color:var(--bh-accent);color:var(--bh-accent);background:#fff7f2}',
       '.bh-sec-row > .bh-direct{flex:1;margin:0;padding:11px 8px;border:1px solid rgba(20,20,26,.18);',
       'border-radius:8px;text-decoration:none;text-align:center;font-size:11px;letter-spacing:.14em;',
       'color:#5d584f;display:flex;align-items:center;justify-content:center}',
-      '.bh-sec-row > .bh-direct:hover{border-color:#ff5a1f;color:#ff5a1f;background:#fff7f2}',
+      '.bh-sec-row > .bh-direct:hover{border-color:var(--bh-accent);color:var(--bh-accent);background:#fff7f2}',
       '.sc.dark .bh-sec-row > .bh-direct{border-color:rgba(243,238,228,.18);color:#b8b2a6}',
-      '.sc.dark .bh-sec-row > .bh-direct:hover{border-color:#ff5a1f;color:#ff5a1f;background:#241a16}',
+      '.sc.dark .bh-sec-row > .bh-direct:hover{border-color:var(--bh-accent);color:var(--bh-accent);background:#241a16}',
       '.sc.dark .bh-sec-row > .bh-link{border-color:rgba(243,238,228,.18);color:#b8b2a6}',
-      '.sc.dark .bh-sec-row > .bh-link:hover{border-color:#ff5a1f;color:#ff5a1f;background:#241a16}',
+      '.sc.dark .bh-sec-row > .bh-link:hover{border-color:var(--bh-accent);color:var(--bh-accent);background:#241a16}',
 '.bh-link{border:0;background:transparent;color:#6c675e;font-size:11px;letter-spacing:.18em;',
       'padding:10px 0 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}',
-      '.bh-link:hover{color:#ff5a1f}',
+      '.bh-link:hover{color:var(--bh-accent)}',
       '.sc.dark .bh-link{color:#b8b2a6}',
-      '.sc.dark .bh-link:hover{color:#ff5a1f}',
+      '.sc.dark .bh-link:hover{color:var(--bh-accent)}',
       '.bh-inline-form{margin-top:12px;padding-top:12px;border-top:1px solid rgba(20,20,26,.18);max-width:520px}',
       '.sc.dark .bh-inline-form{border-top-color:rgba(243,238,228,.18)}',
       '.bh-inline-form .bh-auth-row{margin-bottom:10px}',
@@ -170,21 +177,21 @@ window.__ModuleLoader__.load({
       'padding:14px 16px;color:#14141a;outline:none;',
       'transition:border-color .18s ease,box-shadow .18s ease;',
       'overflow-x:auto;white-space:nowrap}',
-      '.bh-pin:focus{border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,.16)}',
+      '.bh-pin:focus{border-color:var(--bh-accent);box-shadow:0 0 0 3px rgba(var(--bh-accent-rgb),.16)}',
       '.sc.dark .bh-pin{border-color:rgba(243,238,228,.22);background:#17171d;color:#f3eee4}',
-      '.sc.dark .bh-pin:focus{border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,.22)}',
+      '.sc.dark .bh-pin:focus{border-color:var(--bh-accent);box-shadow:0 0 0 3px rgba(var(--bh-accent-rgb),.22)}',
       '.bh-hello{margin-top:12px;width:100%;border:1px solid rgba(20,20,26,.22);border-radius:8px;',
       'background:#f7f1e6;color:#2a2620;padding:12px 14px;font-family:inherit;font-size:12px;',
       'letter-spacing:.18em;cursor:pointer;',
       'transition:background .2s ease,border-color .2s ease,color .2s ease}',
-      '.bh-hello:hover{background:#fff3ea;border-color:#ff5a1f;color:#14141a}',
+      '.bh-hello:hover{background:#fff3ea;border-color:var(--bh-accent);color:#14141a}',
       '.sc.dark .bh-hello{background:#1c1c24;border-color:rgba(243,238,228,.2);color:#d8d2c6}',
-      '.sc.dark .bh-hello:hover{background:#241a16;border-color:#ff5a1f;color:#f3eee4}',
+      '.sc.dark .bh-hello:hover{background:#241a16;border-color:var(--bh-accent);color:#f3eee4}',
       '.bh-recover{margin-top:6px;width:100%;border:0;background:transparent;color:#6c675e;',
       'font-family:inherit;font-size:10px;letter-spacing:.16em;cursor:pointer;padding:6px 0;',
       'text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(20,20,26,.2)}',
-      '.bh-recover:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
-      '.bh-recover.hot{color:#ff5a1f;text-decoration-color:#ff5a1f;font-weight:600}',
+      '.bh-recover:hover{color:var(--bh-accent);text-decoration-color:var(--bh-accent)}',
+      '.bh-recover.hot{color:var(--bh-accent);text-decoration-color:var(--bh-accent);font-weight:600}',
       '.bh-totp-secret{margin:6px 0 8px;padding:8px 10px;border:1px solid rgba(20,20,26,.2);',
       'background:rgba(255,255,255,.55);font-size:10px;line-height:1.7;letter-spacing:.06em;',
       'word-break:break-all;color:#14141a;white-space:pre-wrap;max-height:150px;overflow:auto}',
@@ -197,7 +204,7 @@ window.__ModuleLoader__.load({
       'font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:.2em;',
       'cursor:pointer;padding:8px 0;text-decoration:underline;text-underline-offset:4px;',
       'text-decoration-color:rgba(20,20,26,.22);transition:color .2s ease}',
-      '.bh-direct:hover{color:#ff5a1f;text-decoration-color:#ff5a1f}',
+      '.bh-direct:hover{color:var(--bh-accent);text-decoration-color:var(--bh-accent)}',
       '.bh-auth-err{margin-top:10px;font-size:11px;letter-spacing:.1em;color:#c2401a;min-height:14px}',
       '.bh-alt{margin-top:12px;font-size:10px;letter-spacing:.2em;color:#a29c92}',
       '.bh-alt span{color:#c0bab0;margin-left:8px}',
@@ -917,6 +924,16 @@ window.__ModuleLoader__.load({
 
       // 宿主的设置页里改了外观，这里要能读到：
       // 门是每次启动重建的，所以每次开播前同步一次即可。
+      // 强调色：orange（默认）/ deepseek / graphite。
+      // 通过 .sc 上的类切换 CSS 变量，门的样式里已经没有写死的颜色了。
+      function applyAccent(name) {
+        var sc = document.querySelector('.sc')
+        if (!sc) return
+        sc.classList.remove('accent-deepseek', 'accent-graphite')
+        if (name === 'deepseek') sc.classList.add('accent-deepseek')
+        else if (name === 'graphite') sc.classList.add('accent-graphite')
+      }
+
       async function syncHostSettings() {
         try {
           var out = await Promise.race([
@@ -927,6 +944,11 @@ window.__ModuleLoader__.load({
           var data = await out.json()
           if (data && (data.theme === 'auto' || data.theme === 'light' || data.theme === 'dark')) {
             try { localStorage.setItem(BH_THEME_KEY, data.theme) } catch (e) {}
+          }
+          // 强调色与设置页共用同一个值，否则两边颜色对不上
+          if (data && typeof data.accent === 'string') {
+            try { localStorage.setItem('bh-accent', data.accent) } catch (e) {}
+            applyAccent(data.accent)
           }
         } catch (e) { /* 读不到就用本地记录，不影响开门 */ }
       }
