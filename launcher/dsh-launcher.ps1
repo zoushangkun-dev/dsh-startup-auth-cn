@@ -16,6 +16,15 @@ $logPath = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'launcher
 
 function Write-Log([string]$text) {
   try {
+    # 轮转：超过 256 KB 就只留最后 128 KB。启动器每次开机都写，
+    # 不轮转的话一年下来会变成几兆的垃圾。
+    if (Test-Path -LiteralPath $logPath) {
+      $size = (Get-Item -LiteralPath $logPath).Length
+      if ($size -gt 256KB) {
+        $tail = Get-Content -LiteralPath $logPath -Tail 800 -Encoding UTF8
+        $tail | Out-File -FilePath $logPath -Encoding utf8
+      }
+    }
     ((Get-Date).ToString('yyyy-MM-dd HH:mm:ss') + '  ' + $text) |
       Out-File -FilePath $logPath -Append -Encoding utf8
   } catch { }
