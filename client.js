@@ -626,6 +626,22 @@ window.__ModuleLoader__.load({
                       var left = until ? Math.max(1, Math.ceil((until - Date.now()) / 1000)) : 30
                       return fail('输错太多次，' + left + ' 秒后才能再试 · 也可以点「邮箱验证码跳过」')
                     }
+                    // 失败次数到阈值：不再等冷却，直接把界面切到验证器。
+                    // 这是提高门槛，不是惩罚——用户眼前立刻变成"去验证器"。
+                    if (out.data && out.data.need === 'totp') {
+                      input.value = ''
+                      paintCount()
+                      // 元素名要跟上面实际取的变量一致：input / hello / totpInput
+                      input.style.display = 'none'
+                      var row = input.parentElement
+                      if (row) row.style.display = 'none'
+                      if (hello) hello.style.display = 'none'
+                      totpBox.style.display = 'block'
+                      totpHint.textContent = '失败次数过多。请输入验证器上的 6 位验证码继续。'
+                      totpInput.value = ''
+                      totpInput.focus()
+                      return fail('已切换到验证器')
+                    }
                     // 输错时把“你实际输了几位”说出来：位数被截断或按错时，
                     // 一句话就能看出来，不用怀疑自己记错。
                     var why = (out.data && out.data.error) || '验证失败'
