@@ -216,6 +216,22 @@ window.__ModuleLoader__.load({
       '.bh-settings:hover{border-color:var(--bh-accent);color:var(--bh-accent)}',
       '.sc.dark .bh-settings{border-color:rgba(243,238,228,.18);color:#b8b2a6}',
       '.sc.dark .bh-settings:hover{border-color:var(--bh-accent);color:var(--bh-accent)}',
+      // 动效：只做"能说明状态变化"的，不做装饰性乱动。
+      // 眼睛图标切换时轻轻缩一下，配合 reveal 音，形成一次明确的"动作完成"。
+      '.bh-eye svg{transition:transform .18s cubic-bezier(.2,.9,.3,1.2),opacity .18s ease}',
+      '.bh-eye:active svg{transform:scale(.86)}',
+      '.bh-eye.on svg{transform:scale(1.06)}',
+      // 验证器面板滑入：从上方 8px 落下来，让人注意到界面变了
+      '.bh-recover-box.on, #bh-totp-box{animation:bh-rise .26s cubic-bezier(.2,.9,.3,1)}',
+      '@keyframes bh-rise{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}',
+      // 输入框出错时抖一下（这条规则以前就有，确保它挂在实际用到的类上）
+      '.bh-pin.bh-shake{animation:bh-shake .34s ease}',
+      // 主按钮按下有 1px 位移，给手指一个"确实点到了"的确认
+      '.sc-btn:active{transform:translateY(1px)}',
+      // 系统开了"减少动态效果"就全关掉，这是无障碍要求，不是可选项
+      '@media (prefers-reduced-motion: reduce){',
+      '*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;',
+      'transition-duration:.001s!important}}',
 '.bh-shake{animation:bh-shake .34s ease}',
       '@keyframes bh-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}',
       '50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}',
@@ -366,7 +382,57 @@ window.__ModuleLoader__.load({
           osc.stop(t + dur + 0.02)
         } catch (e) { /* decoration only */ }
       }
-      return { tick: function () { hit(880, 0.06, 0.05) }, thunk: function () { hit(160, 0.22, 0.09) }, nope: function () { hit(120, 0.18, 0.08) }, click: function () { hit(1480, 0.035, 0.055); hit(990, 0.03, 0.02) } }
+      // 一点白噪声，用来做"打开"的气流声。没有素材，全部现场合成。
+      function whoosh(dur) {
+        var ac = ensure()
+        if (!ac) return
+        try {
+          var frames = Math.floor(ac.sampleRate * dur)
+          var buf = ac.createBuffer(1, frames, ac.sampleRate)
+          var data = buf.getChannelData(0)
+          for (var i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames)
+          var src = ac.createBufferSource()
+          var filter = ac.createBiquadFilter()
+          var g = ac.createGain()
+          filter.type = 'bandpass'
+          filter.frequency.value = 900
+          filter.Q.value = 0.8
+          g.gain.value = 0.05
+          src.buffer = buf
+          src.connect(filter).connect(g).connect(ac.destination)
+          src.start()
+        } catch (e) { /* decoration only */ }
+      }
+
+      // 每个声音对应一个明确的状态，别让它们听起来差不多——
+      // 反馈的价值在于"不用看屏幕也知道发生了什么"。
+      return {
+        // 按键：极短的高音，像机械键盘的余响
+        click: function () { hit(1480, 0.035, 0.055); hit(990, 0.03, 0.02) },
+        // 入场推进
+        tick: function () { hit(880, 0.06, 0.05) },
+        // 眼睛切换：上行为"露出"，下行为"遮住"
+        reveal: function (show) {
+          if (show) { hit(660, 0.06, 0.05); setTimeout(function () { hit(990, 0.07, 0.045) }, 55) }
+          else { hit(990, 0.06, 0.05); setTimeout(function () { hit(660, 0.07, 0.045) }, 55) }
+        },
+        // 通过：一个三度叠置的和弦，短促但有重量
+        thunk: function () {
+          hit(392, 0.26, 0.075)
+          setTimeout(function () { hit(523.25, 0.26, 0.06) }, 40)
+          setTimeout(function () { hit(784, 0.3, 0.05) }, 80)
+        },
+        // 失败：两声下行，像"不对"
+        nope: function () { hit(200, 0.12, 0.08); setTimeout(function () { hit(150, 0.16, 0.075) }, 90) },
+        // 切到验证器：三声下行，比失败更"重"，因为它改变的是流程
+        escalate: function () {
+          hit(523.25, 0.1, 0.06)
+          setTimeout(function () { hit(392, 0.1, 0.06) }, 90)
+          setTimeout(function () { hit(293.66, 0.2, 0.07) }, 180)
+        },
+        // 门开：气流 + 低音托底
+        open: function () { whoosh(0.45); hit(196, 0.3, 0.06) },
+      }
     }
 
     function postJSON(url, body) {
@@ -618,7 +684,7 @@ window.__ModuleLoader__.load({
                 postJSON(target, { pin: pin })
                   .then(function (out) {
                     go.disabled = false
-                    if (out.data && out.data.ok) { sound.thunk(); return done('pin') }
+                    if (out.data && out.data.ok) { sound.open(); return done('pin') }
                     if (out.status === 429) {
                       // Not a forgotten PIN -- just too many wrong tries. Point
                       // at the code that skips the cooldown.
@@ -640,6 +706,7 @@ window.__ModuleLoader__.load({
                       totpHint.textContent = '失败次数过多。请输入验证器上的 6 位验证码继续。'
                       totpInput.value = ''
                       totpInput.focus()
+                      sound.escalate()
                       return fail('已切换到验证器')
                     }
                     // 输错时把“你实际输了几位”说出来：位数被截断或按错时，
@@ -703,7 +770,8 @@ window.__ModuleLoader__.load({
                   eyeBtn.setAttribute('aria-pressed', revealed ? 'true' : 'false')
                   eyeBtn.setAttribute('aria-label', revealed ? '隐藏密码' : '显示密码')
                   eyeBtn.innerHTML = revealed ? EYE_OPEN : EYE_SHUT
-                  sound.click()
+                  // 露出与遮住用不同音高：闭着眼也知道刚才按的是哪一下
+                  sound.reveal(revealed)
                   try { input.focus() } catch (e) {}
                 })
               }
